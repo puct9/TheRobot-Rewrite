@@ -1,0 +1,7 @@
+# Directories
+/.vscode
+/venv
+__pycache__
+
+# Files
+/*.sh
