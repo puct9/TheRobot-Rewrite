@@ -21,7 +21,12 @@ async def join_user(
     # Make a connection
     author = message.author
     if isinstance(author, discord.Member) and author.voice is not None:
-        await author.voice.channel.connect()
+        # Check if we need to disconnect from an existing channel
+        current = get_voice_client_by_guild(client, author.guild)
+        if current is not None:
+            await current.move_to(author.voice.channel)
+        else:
+            await author.voice.channel.connect()
     else:
         return  # Nothing we can do
 
