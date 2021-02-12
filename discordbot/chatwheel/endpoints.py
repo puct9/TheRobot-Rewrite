@@ -1,5 +1,5 @@
 import os
-from typing import Optional, Tuple
+from typing import Optional, Sequence
 
 import discord
 
@@ -16,7 +16,7 @@ def get_voice_client_by_guild(
 
 @Endpoint
 async def join_user(
-    client: discord.Client, message: discord.Message, groups: Tuple[str]
+    client: discord.Client, message: discord.Message, groups: Sequence[str]
 ) -> None:
     # Make a connection
     author = message.author
@@ -33,7 +33,7 @@ async def join_user(
 
 @Endpoint
 async def leave_user(
-    client: discord.Client, message: discord.Message, groups: Tuple[str]
+    client: discord.Client, message: discord.Message, groups: Sequence[str]
 ) -> None:
     voice_client = get_voice_client_by_guild(client, message.guild)
     if voice_client is not None:
@@ -42,7 +42,7 @@ async def leave_user(
 
 @Endpoint
 async def play_audio(
-    client: discord.Client, message: discord.Message, groups: Tuple[str]
+    client: discord.Client, message: discord.Message, groups: Sequence[str]
 ) -> None:
     # Detect if we have an active voice client on the server. If so, simply
     # play the audio and don't worry about switching channels. This is for
