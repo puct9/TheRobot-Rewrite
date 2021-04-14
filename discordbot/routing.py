@@ -1,5 +1,5 @@
 import re
-from typing import Callable, List, Tuple, Union, Generator
+from typing import Callable, Generator, List, Match, Tuple, Union
 
 import discord
 
@@ -31,7 +31,7 @@ class Pattern:
         self.to = to
         self.description = description
 
-    def do_match(self, content: str) -> bool:
+    def do_match(self, content: str) -> Match[str]:
         return re.match(self.match, content)
 
 
