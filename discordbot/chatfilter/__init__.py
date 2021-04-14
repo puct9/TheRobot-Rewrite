@@ -4,7 +4,7 @@ import discord
 
 from ..routing import Endpoint
 
-DISALLOWED = ["tenor"]
+DISALLOWED = ["https://tenor.com"]
 
 
 @Endpoint
