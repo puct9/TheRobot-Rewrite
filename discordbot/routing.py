@@ -63,6 +63,5 @@ class RoutingList:
         for pattern in self.patterns:
             if isinstance(pattern.to, Endpoint):
                 yield pattern
-        for pattern in self.patterns:
             if isinstance(pattern.to, RoutingList):
                 yield from pattern.to.generate_leaf_patterns()
