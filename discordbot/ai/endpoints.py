@@ -34,9 +34,9 @@ async def inception_v3_inference(
         await message.channel.send("No image attached")
         return
     try:
-        async with httpx.AsyncClient() as client:
-            req = await client.get(message.attachments[0].url)
-    except BaseException:
+        async with httpx.AsyncClient() as httpclient:
+            req = await httpclient.get(message.attachments[0].url)
+    except Exception:
         await message.channel.send("Unable to download image")
         return
     try:
