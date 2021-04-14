@@ -1,9 +1,15 @@
 import discord
 
-from . import chatwheel
+from . import ai, chatwheel, chatfilter
 from .routing import Pattern, RoutingList
 
-DEFAUT_ROUTING = RoutingList([Pattern(r"^\.vw ", chatwheel.PATTERNS)])
+DEFAUT_ROUTING = RoutingList(
+    [
+        Pattern(r"^\.vw ", chatwheel.PATTERNS),
+        Pattern(r"\.ai ", ai.PATTERNS),
+        Pattern(r".+", chatfilter.filter),
+    ]
+)
 
 
 class BotClient(discord.Client):
