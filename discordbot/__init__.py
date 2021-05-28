@@ -3,7 +3,7 @@ import discord
 from . import chatwheel, chatfilter
 from .routing import Pattern, RoutingList
 
-DEFAUT_ROUTING = RoutingList(
+DEFAULT_ROUTING = RoutingList(
     [
         Pattern(r"^\.vw ", chatwheel.PATTERNS),
         Pattern(r".+", chatfilter.filter),
@@ -24,7 +24,7 @@ class BotClient(discord.Client):
 
         if message.content == ".index":
             res = ""
-            leaf_patterns = DEFAUT_ROUTING.generate_leaf_patterns()
+            leaf_patterns = DEFAULT_ROUTING.generate_leaf_patterns()
             for leaf_pattern in leaf_patterns:
                 res += (
                     f"{leaf_pattern.description}\n```re\n"
@@ -32,7 +32,7 @@ class BotClient(discord.Client):
                 )
             await message.channel.send(res)
 
-        trace, endpoint, groups = DEFAUT_ROUTING.forward(message)
+        trace, endpoint, groups = DEFAULT_ROUTING.forward(message)
         if endpoint is None:
             return
         print(f"Message: {message.content}")
