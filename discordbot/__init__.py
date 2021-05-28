@@ -36,6 +36,7 @@ class BotClient(discord.Client):
         if endpoint is None:
             return
         print(f"Message: {message.content}")
+        print(f"Author: {message.author.name}")
         print(
             "\n".join(
                 f"{i}: {pattern.match}" for i, pattern in enumerate(trace)
