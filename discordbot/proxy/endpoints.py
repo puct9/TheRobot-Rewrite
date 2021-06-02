@@ -42,8 +42,6 @@ async def proxy_embed(
     current_mode = "n"
     dest = "null"
     current_data = ""
-    lines = message.content.split("\n")
-    print(f"Lines: {lines}")
     for line in message.content.split("\n"):
         line: str
         line_words = line.split()
@@ -51,9 +49,7 @@ async def proxy_embed(
         for mode in modes:
             prefix = f".{mode}"
             if line_start == prefix:
-                print(current_data)
                 current_data = current_data.strip().strip("<>")
-                print(current_data)
                 if dest == "fields":
                     data["fields"].append((current_data, current_mode == "fi"))
                 else:
@@ -64,13 +60,10 @@ async def proxy_embed(
                 break
         dest = modes[current_mode]
         current_data += "\n" + line
-        print(f"Line: {line}\nMode: {current_mode}\nData: {data}")
     if dest == "fields":
         data["fields"].append((current_data, current_mode == "fi"))
     else:
         data[dest] += current_data
-
-    print(data)
 
     init_kwargs = {"url": data["url"], "description": data["description"]}
     embed = discord.Embed(
