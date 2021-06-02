@@ -51,7 +51,9 @@ async def proxy_embed(
         for mode in modes:
             prefix = f".{mode}"
             if line_start == prefix:
-                current_data = current_data.strip()
+                print(current_data)
+                current_data = current_data.strip().strip("<>")
+                print(current_data)
                 if dest == "fields":
                     data["fields"].append((current_data, current_mode == "fi"))
                 else:
