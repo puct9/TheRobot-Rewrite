@@ -1,12 +1,13 @@
 import discord
 
-from . import chatwheel, chatfilter, lolapi
+from . import chatwheel, chatfilter, lolapi, proxy
 from .routing import Pattern, RoutingList
 
 DEFAULT_ROUTING = RoutingList(
     [
         Pattern(r"^\.vw ", chatwheel.PATTERNS),
         Pattern(r"^\.lol ", lolapi.PATTERNS),
+        Pattern(r"\.proxy ", proxy.PATTERNS),
         Pattern(r".+", chatfilter.filter),
     ]
 )
