@@ -1,83 +1,21 @@
 import io
-import os
 import urllib.parse
-from typing import List, Tuple, Union
+from typing import Any, Dict, Tuple, Union
 
 import discord
-import httpx
 import numpy as np
 from matplotlib import pyplot as plt
-from pantheon import pantheon
-from pantheon.utils.exceptions import NotFound
 
-apikey = os.environ.get("rg_api_key")
-regions = {
-    "br": "br1",
-    "eune": "eun1",
-    "euw": "euw1",
-    "jp": "jp1",
-    "kr": "kr",
-    "lan": "la1",
-    "las": "la2",
-    "na": "na1",
-    "oce": "oc1",
-    "tr": "tr1",
-    "ru": "ru",
-}
-champs = {}
-champs_images = {}
-game_ver = ""
-
-panths = {k: pantheon.Pantheon(v, apikey) for k, v in regions.items()}
-
-
-async def get_champions(region):
-    global game_ver
-    async with httpx.AsyncClient() as client:
-        region_info = await client.get(
-            f"https://ddragon.leagueoflegends.com/realms/{region}.json"
-        )
-        region_info = region_info.json()
-        lang = "en_AU"  # region_info['l']
-        ver = region_info["n"]["champion"]
-        game_ver = ver
-        champdata = await client.get(
-            f"https://ddragon.leagueoflegends.com/cdn/{ver}/data/{lang}/"
-            "championFull.json"
-        )
-        champdata = champdata.json()["data"]
-    for info in champdata.values():
-        champs[int(info["key"])] = info["name"]
-        champs_images[info["name"]] = info["image"]["full"]
-
-
-async def get_masteries(
-    name: str, region: str
-) -> Tuple[Union[bool, List[str]], Union[str, Union[str, List[int]]]]:
-    if region.lower() not in regions:
-        return False, "No such region"
-    try:
-        sid = await panths[region.lower()].getSummonerByName(name)
-    except NotFound:
-        return False, "No such summoner"
-    res = await panths[region.lower()].getChampionMasteries(sid["id"])
-
-    if any(info["championId"] not in champs for info in res):
-        await get_champions(region.lower())
-    cms = [
-        (champs[info["championId"]], info["championPoints"]) for info in res
-    ]
-    names = [d[0] for d in cms[::-1]]
-    points = [d[1] for d in cms[::-1]]
-    return names, points
+from .query import API
 
 
 async def generate_visual(
     name: str, region: str
 ) -> Tuple[bool, Union[str, io.BytesIO]]:
-    names, points = await get_masteries(name, region)
-    if isinstance(names, bool):
-        return names, points
+    summoner = await API.get_summoner_by_name(name, region)
+    if isinstance(summoner, str):
+        return False, summoner
+    names, points = await summoner.get_masteries()
 
     fig, ax = plt.subplots()
 
@@ -99,9 +37,10 @@ async def generate_visual(
 
 
 async def generate_embed(name: str, region: str) -> discord.Embed:
-    names, points = await get_masteries(name, region)
-    if isinstance(names, bool):
-        return names, points
+    summoner = await API.get_summoner_by_name(name, region)
+    if isinstance(summoner, str):
+        return False, summoner
+    names, points = await summoner.get_masteries()
 
     # Sort decreasing
     names = names[::-1]
@@ -109,19 +48,32 @@ async def generate_embed(name: str, region: str) -> discord.Embed:
     url_arg = urllib.parse.urlencode({"userName": name})
     points_sum = sum(points)
     embed = discord.Embed(
-        title="Player summary",
+        title="Player profile",
         url=f"https://{region.lower()}.op.gg/summoner/{url_arg}",
         description=f"{name}\nMastery points: {points_sum}",
     )
+    embed.set_thumbnail(url=summoner.profile_icon_url)
     if names:
-        embed.set_thumbnail(
-            url=(
-                f"https://ddragon.leagueoflegends.com/cdn/{game_ver}/img/"
-                f"champion/{champs_images[names[0]]}"
-            )
+        embed.set_author(
+            name=summoner.name,
+            icon_url=(
+                f"https://ddragon.leagueoflegends.com/cdn/{API.game_version}/"
+                f"img/champion/{API.champion_images[names[0]]}"
+            ),
         )
+    else:
+        embed.set_author(name=summoner.name)
     for n, p in zip(names[:3], points[:3]):
         embed.add_field(
-            name=n, value=f"{p}\n({(p / points_sum * 100):.2f}%)", inline=True
+            name=n, value=f"{p}\n({(p / points_sum * 100):.1f}%)", inline=True
         )
     return True, embed
+
+
+async def get_game_info(
+    name: str, region: str
+) -> Tuple[bool, Union[str, Dict[str, Any]]]:
+    summoner = await API.get_summoner_by_name(name, region)
+    if isinstance(summoner, str):
+        return False, summoner
+    # TODO for another day
