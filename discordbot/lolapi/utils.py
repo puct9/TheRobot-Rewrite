@@ -22,7 +22,9 @@ async def generate_visual(
     plt.barh(np.arange(len(names)), points)
     plt.yticks(np.arange(len(names)), names)
     plt.xlabel("Mastery Points")
-    plt.title(f"Champion Mastery Points for {name}")
+    plt.title(
+        f"Champion Mastery Points for {summoner.name} ({summoner.region})"
+    )
 
     fig_size = plt.gcf().get_size_inches()
     scale_factor = len(names) / 25
@@ -47,10 +49,12 @@ async def generate_embed(name: str, region: str) -> discord.Embed:
     points = points[::-1]
     url_arg = urllib.parse.urlencode({"userName": name})
     points_sum = sum(points)
+    subdomain = region.lower()
+    subdomain = "www" if subdomain == "kr" else subdomain
     embed = discord.Embed(
         title="Player profile",
-        url=f"https://{region.lower()}.op.gg/summoner/{url_arg}",
-        description=f"{name}\nMastery points: {points_sum}",
+        url=f"https://{subdomain}.op.gg/summoner/{url_arg}",
+        description=f"{summoner.name}\nMastery points: {points_sum}",
     )
     embed.set_thumbnail(url=summoner.profile_icon_url)
     if names:
