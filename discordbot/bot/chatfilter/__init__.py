@@ -1,16 +1,21 @@
-from typing import Sequence
+from typing import TYPE_CHECKING, Sequence
 
 import discord
 
 from ..routing import Endpoint
 
-DISALLOWED = ["https://tenor.com"]
+if TYPE_CHECKING:
+    from .. import BotClient
 
 
 @Endpoint
 async def filter(
-    client: discord.Client, message: discord.Message, groups: Sequence[str]
+    self: "BotClient", message: discord.Message, groups: Sequence[str]
 ) -> None:
-    for disallowed in DISALLOWED:
-        if disallowed in message.content:
+    exempt = await self.db.is_censor_exempt(message.author.id)
+    if exempt:
+        return
+    disallowed = await self.db.censor_list()
+    for censor in disallowed:
+        if censor in message.content:
             await message.delete()

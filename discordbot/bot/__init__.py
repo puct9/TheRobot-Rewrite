@@ -1,6 +1,7 @@
 import discord
 
-from . import chatwheel, chatfilter, lolapi, proxy
+from ..db import BaseDB
+from . import chatfilter, chatwheel, lolapi, proxy
 from .routing import Pattern, RoutingList
 
 DEFAULT_ROUTING = RoutingList(
@@ -14,8 +15,9 @@ DEFAULT_ROUTING = RoutingList(
 
 
 class BotClient(discord.Client):
-    def __init__(self) -> None:
+    def __init__(self, db: BaseDB = None) -> None:
         super().__init__()
+        self.db = db or BaseDB()
 
     async def on_ready(self) -> None:
         print(f"Logged on as {self.user}")
@@ -38,11 +40,12 @@ class BotClient(discord.Client):
         if endpoint is None:
             return
         print(f"Message: {message.content}")
-        print(f"Author: {message.author.name}")
+        print(f"Author: {message.author.name} ({message.author.id})")
         print(
             "\n".join(
                 f"{i}: {pattern.match}" for i, pattern in enumerate(trace)
             )
         )
+        print(f"-> {endpoint.func.__module__}.{endpoint.func.__name__}")
         print("========================================")
         await endpoint(self, message, groups)
