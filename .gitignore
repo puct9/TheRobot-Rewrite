@@ -5,7 +5,9 @@
 __pycache__
 
 # Files
+/*.bat
 /*.sh
+/test*.py
 
 # Google Cloud key file
 /*.json
