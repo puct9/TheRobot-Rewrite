@@ -12,8 +12,8 @@ if TYPE_CHECKING:
 async def filter(
     self: "BotClient", message: discord.Message, groups: Sequence[str]
 ) -> None:
-    exempt = await self.db.is_censor_exempt(message.author.id)
-    if exempt:
+    user = await self.db.get_user(message.author.id)
+    if user.censor_exempt:
         return
     disallowed = await self.db.censor_list()
     for censor in disallowed:

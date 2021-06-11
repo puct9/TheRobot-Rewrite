@@ -27,10 +27,6 @@ class FirestoreDB(BaseDB):
         data = await self.config_censor.get()
         return data.to_dict()["data"]
 
-    async def is_censor_exempt(self, user_id: int) -> bool:
-        data = await self.config_exempt.get()
-        return data.to_dict().get(str(user_id), False)
-
     async def get_user(self, user_id: int) -> "User":
         ref = self.users.document(str(user_id))
         data = (await ref.get()).to_dict()
