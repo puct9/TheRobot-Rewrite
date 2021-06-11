@@ -25,4 +25,4 @@ class FirestoreDB(BaseDB):
 
     async def is_censor_exempt(self, user_id: int) -> bool:
         data = await self.config_exempt.get()
-        return data.to_dict()[str(user_id)]
+        return data.to_dict().get([str(user_id)], False)
