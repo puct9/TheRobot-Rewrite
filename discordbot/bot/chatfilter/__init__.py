@@ -15,7 +15,6 @@ async def filter(
     user = await self.db.get_user(message.author.id)
     if user.censor_exempt:
         return
-    disallowed = await self.db.censor_list()
-    for censor in disallowed:
+    for censor in await self.db.censor_list():
         if censor in message.content:
             await message.delete()
