@@ -1,15 +1,18 @@
 import io
-from typing import Sequence
+from typing import TYPE_CHECKING, Sequence
 
 import discord
 
 from ..routing import Endpoint
 from .utils import generate_embed, generate_visual
 
+if TYPE_CHECKING:
+    from .. import BotClient
+
 
 @Endpoint
 async def lol_masteries(
-    client: discord.Client, message: discord.Message, groups: Sequence[str]
+    self: "BotClient", message: discord.Message, groups: Sequence[str]
 ) -> None:
     region = groups[0]
     user_name = groups[1]
@@ -26,7 +29,7 @@ async def lol_masteries(
 
 @Endpoint
 async def lol_profile(
-    client: discord.Client, message: discord.Message, groups: Sequence[str]
+    self: "BotClient", message: discord.Message, groups: Sequence[str]
 ) -> None:
     region = groups[0]
     user_name = groups[1]

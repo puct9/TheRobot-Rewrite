@@ -1,13 +1,16 @@
-from typing import Sequence
+from typing import TYPE_CHECKING, Sequence
 
 import discord
 
 from ..routing import Endpoint
 
+if TYPE_CHECKING:
+    from .. import BotClient
+
 
 @Endpoint
 async def proxy_embed(
-    client: discord.Client, message: discord.Message, groups: Sequence[str]
+    self: "BotClient", message: discord.Message, groups: Sequence[str]
 ) -> None:
     # Parse the message
     data = {

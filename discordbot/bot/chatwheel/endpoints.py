@@ -1,28 +1,31 @@
 import os
-from typing import Optional, Sequence
+from typing import TYPE_CHECKING, Optional, Sequence
 
 import discord
 
 from ..routing import Endpoint
 
+if TYPE_CHECKING:
+    from .. import BotClient
+
 
 def get_voice_client_by_guild(
-    client: discord.Client, guild: discord.Guild
+    self: "BotClient", guild: discord.Guild
 ) -> Optional[discord.VoiceClient]:
-    for voice_client in client.voice_clients:
+    for voice_client in self.voice_clients:
         if voice_client.guild == guild:
             return voice_client
 
 
 @Endpoint
 async def join_user(
-    client: discord.Client, message: discord.Message, groups: Sequence[str]
+    self: "BotClient", message: discord.Message, groups: Sequence[str]
 ) -> None:
     # Make a connection
     author = message.author
     if isinstance(author, discord.Member) and author.voice is not None:
         # Check if we need to disconnect from an existing channel
-        current = get_voice_client_by_guild(client, author.guild)
+        current = get_voice_client_by_guild(self, author.guild)
         if current is not None:
             await current.move_to(author.voice.channel)
         else:
@@ -33,23 +36,23 @@ async def join_user(
 
 @Endpoint
 async def leave_user(
-    client: discord.Client, message: discord.Message, groups: Sequence[str]
+    self: "BotClient", message: discord.Message, groups: Sequence[str]
 ) -> None:
-    voice_client = get_voice_client_by_guild(client, message.guild)
+    voice_client = get_voice_client_by_guild(self, message.guild)
     if voice_client is not None:
         await voice_client.disconnect()
 
 
 @Endpoint
 async def play_audio(
-    client: discord.Client, message: discord.Message, groups: Sequence[str]
+    self: "BotClient", message: discord.Message, groups: Sequence[str]
 ) -> None:
     # Detect if we have an active voice client on the server. If so, simply
     # play the audio and don't worry about switching channels. This is for
     # support for webhook integrations. Server members can still change the
     # channel of the bot by using the `.vw j` command.
 
-    voice_client = get_voice_client_by_guild(client, message.guild)
+    voice_client = get_voice_client_by_guild(self, message.guild)
     if voice_client is None:
         # Make a connection
         author = message.author
