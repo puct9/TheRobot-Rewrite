@@ -12,7 +12,6 @@ class FirestoreDB(BaseDB):
         self.db = AsyncClient()
         self.config = self.db.collection("config")
         self.config_censor = self.config.document("censor")
-        self.config_exempt = self.config.document("exempt")
         self.users = self.db.collection("users")
 
         # First time setup
@@ -20,8 +19,6 @@ class FirestoreDB(BaseDB):
         sync_config = db_sync.collection("config")
         if sync_config.document("censor").get().to_dict() is None:
             sync_config.document("censor").create({"data": []})
-        if sync_config.document("exempt").get().to_dict() is None:
-            sync_config.document("exempt").create({})
 
     async def censor_list(self) -> List[str]:
         data = await self.config_censor.get()
