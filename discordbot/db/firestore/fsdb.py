@@ -42,7 +42,7 @@ class FirestoreDB(BaseDB):
         return data.to_dict()["subjects"]
 
     async def quiz_list(self, subject: str) -> List[str]:
-        quizzes = self.quiz_index.collection(subject).stream()
+        quizzes = self.quiz_index.collection(subject).list_documents()
         return [doc.id async for doc in quizzes]
 
     async def get_quiz(self, subject: str, name: str) -> "QuizBase":
