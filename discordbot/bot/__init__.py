@@ -1,14 +1,15 @@
 import discord
 
 from ..db import BaseDB
-from . import chatfilter, chatwheel, lolapi, proxy
+from . import chatfilter, chatwheel, lolapi, proxy, quiz
 from .routing import Pattern, RoutingList
 
 DEFAULT_ROUTING = RoutingList(
     [
         Pattern(r"^\.vw ", chatwheel.PATTERNS),
         Pattern(r"^\.lol ", lolapi.PATTERNS),
-        Pattern(r"\.proxy ", proxy.PATTERNS),
+        Pattern(r"^\.proxy ", proxy.PATTERNS),
+        Pattern(r"^\.quiz", quiz.PATTERNS),
         Pattern(r".+", chatfilter.filter),
     ]
 )
@@ -47,5 +48,5 @@ class BotClient(discord.Client):
             )
         )
         print(f"-> {endpoint.func.__module__}.{endpoint.func.__name__}")
-        print("========================================")
+        print("=" * 79)
         await endpoint(self, message, groups)
