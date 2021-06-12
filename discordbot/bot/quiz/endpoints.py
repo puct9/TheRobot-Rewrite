@@ -81,16 +81,23 @@ async def quiz_subject_random(
         if not expected and response:  # User chose a wrong answer
             n_correct = -1
             break
+
+    # Ending message
+    emojis = [
+        character_emojis[i] for i, c in enumerate(correct_responses) if c
+    ]
     if n_correct >= quiz.required_correct:
         await message.channel.send("That's right! Good job.")
     elif quiz.required_correct == 1:
-        emojis = [
-            character_emojis[i] for i, c in enumerate(correct_responses) if c
-        ]
         if len(emojis) > 1:
             answers = "either " + " or ".join(emojis)
         else:
             answers = emojis[0]
+        await message.channel.send(
+            f"That's wrong! The right answer is {answers}"
+        )
+    else:  # multiple answers required questions
+        answers = " and ".join(emojis)
         await message.channel.send(
             f"That's wrong! The right answer is {answers}"
         )
