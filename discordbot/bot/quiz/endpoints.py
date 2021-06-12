@@ -24,6 +24,11 @@ async def quiz_subject_random(
     validate_symbol = chr(0x2611)  # U+2611 Check mark
     subject = groups[0]
     quizzes = await self.db.quiz_list(subject)
+    if not quizzes:
+        await message.channel.send(
+            "The subject cannot be found or there are no questions"
+        )
+        return
     quiz = await self.db.get_quiz(subject, random.choice(quizzes))
     embed = discord.Embed(title="Question", description=quiz.question)
     if not quiz.ordered:
@@ -70,15 +75,29 @@ async def quiz_subject_random(
         await message.channel.send("Out of time!")
         return
     n_correct = 0
-    for option, response in zip(quiz.options, responses):
-        exepcted = option["correct"]
-        n_correct += exepcted and response
-        if not exepcted and response:  # User chose a wrong answer
+    correct_responses = [option["correct"] for option in quiz.options]
+    for expected, response in zip(correct_responses, responses):
+        n_correct += expected and response
+        if not expected and response:  # User chose a wrong answer
             n_correct = -1
             break
+
+    # Ending message
+    emojis = [
+        character_emojis[i] for i, c in enumerate(correct_responses) if c
+    ]
     if n_correct >= quiz.required_correct:
         await message.channel.send("That's right! Good job.")
-    else:
+    elif quiz.required_correct == 1:
+        if len(emojis) > 1:
+            answers = "either " + " or ".join(emojis)
+        else:
+            answers = emojis[0]
         await message.channel.send(
-            "Looks like you forgot you are a loser and got it WRONG!"
+            f"That's wrong! The right answer is {answers}"
+        )
+    else:  # multiple answers required questions
+        answers = " and ".join(emojis)
+        await message.channel.send(
+            f"That's wrong! The right answer is {answers}"
         )

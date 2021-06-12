@@ -1,8 +1,13 @@
 from copy import deepcopy
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from google.api_core.exceptions import NotFound
-from google.cloud.firestore import AsyncClient, Client, DocumentReference
+from google.cloud.firestore import (
+    AsyncClient,
+    Client,
+    CollectionReference,
+    DocumentReference,
+)
 
 from ..bases import BaseDB, UserBase, QuizBase
 
@@ -22,7 +27,7 @@ class FirestoreDB(BaseDB):
             sync_config.document("censor").create({"data": []})
         quiz_index = db_sync.collection("quizzes").document("index")
         if quiz_index.get().to_dict() is None:
-            quiz_index.create({"subjects": []})
+            quiz_index.create({})
 
     async def censor_list(self) -> List[str]:
         data = await self.config_censor.get()
@@ -42,13 +47,26 @@ class FirestoreDB(BaseDB):
         return data.to_dict()["subjects"]
 
     async def quiz_list(self, subject: str) -> List[str]:
-        quizzes = self.quiz_index.collection(subject).stream()
+        coll = await self.get_quiz_collection_by_subject(subject)
+        if coll is None:
+            return []
+        quizzes = coll.list_documents()
         return [doc.id async for doc in quizzes]
 
     async def get_quiz(self, subject: str, name: str) -> "QuizBase":
-        data = await self.quiz_index.collection(subject).document(name).get()
+        coll = await self.get_quiz_collection_by_subject(subject)
+        if coll is None:
+            return QuizBase()
+        data = await coll.document(name).get()
         quiz = Quiz(data.to_dict())
         return quiz
+
+    async def get_quiz_collection_by_subject(
+        self, subject: str
+    ) -> Optional[CollectionReference]:
+        coll = (await self.quiz_index.get()).to_dict().get(subject)
+        if coll is not None:
+            return self.quiz_index.collection(coll)
 
 
 class User(UserBase):
