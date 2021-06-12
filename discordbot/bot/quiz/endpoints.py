@@ -24,6 +24,11 @@ async def quiz_subject_random(
     validate_symbol = chr(0x2611)  # U+2611 Check mark
     subject = groups[0]
     quizzes = await self.db.quiz_list(subject)
+    if not quizzes:
+        await message.channel.send(
+            "The subject cannot be found or there are no questions"
+        )
+        return
     quiz = await self.db.get_quiz(subject, random.choice(quizzes))
     embed = discord.Embed(title="Question", description=quiz.question)
     if not quiz.ordered:
