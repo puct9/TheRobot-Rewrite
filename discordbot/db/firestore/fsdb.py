@@ -58,7 +58,7 @@ class FirestoreDB(BaseDB):
         if coll is None:
             return QuizBase()
         data = await coll.document(name).get()
-        quiz = Quiz(data.to_dict(), name)
+        quiz = Quiz(data.to_dict())
         return quiz
 
     async def get_quiz_collection_by_subject(
@@ -96,8 +96,7 @@ class User(UserBase):
 
 
 class Quiz(QuizBase):
-    def __init__(self, data_dict: Dict[str, Any], id: str) -> None:
+    def __init__(self, data_dict: Dict[str, Any]) -> None:
         super().__init__()
-        self.id: str
         data_dict = data_dict or {}
         self._data.update(data_dict)
