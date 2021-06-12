@@ -11,6 +11,15 @@ class BaseDB:
         user.id = str(user_id)
         return user
 
+    async def quiz_subjects(self) -> List[str]:
+        return []
+
+    async def quiz_list(self, subject: str) -> List[str]:
+        return []
+
+    async def get_quiz(self, subject: str, name: str) -> "QuizBase":
+        return QuizBase()
+
 
 class BaseDataModel:
     _DEFAULT = {}
@@ -64,3 +73,37 @@ class UserBase(BaseDataModel):
         super().__init__()
         self.id: str
         self.censor_exempt: bool
+
+
+class QuizBase(BaseDataModel):
+    # Demonstration of how quizzes can be laid out
+    _DEFAULT = {
+        "question": "What is the capital of Australia?",
+        "ordered": False,
+        "required_correct": 1,
+        "options": [
+            {
+                "answer": "Canberra",
+                "correct": True,
+            },
+            {
+                "answer": "Melbourne",
+                "correct": False,
+            },
+            {
+                "answer": "Sydney",
+                "correct": False,
+            },
+            {
+                "answer": "Darwin",
+                "correct": False,
+            },
+        ],
+    }
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.question: str
+        self.ordered: bool
+        self.required_correct: int
+        self.options: List[Dict[str, Any]]
