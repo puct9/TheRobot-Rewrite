@@ -104,9 +104,10 @@ class FirestoreDB(BaseDB):
         return data.to_dict()["subjects"]
 
     async def quiz_list(self, subject: str) -> List[str]:
-        coll, coll_sync = await self.get_quiz_collection_by_subject(subject)
-        if coll is None:
+        res = await self.get_quiz_collection_by_subject(subject)
+        if res is None:
             return []
+        coll, coll_sync = res
         # Don't let the cache take priority so live changes to /quizzes/index
         # are prioritised instead
         # Also use `coll.id` instead of `subject` because mappings in the index
