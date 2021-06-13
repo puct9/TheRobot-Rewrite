@@ -47,6 +47,7 @@ class IndexCache:
             self.index.add(doc.id)
         # Start listening for updates
         self.watch = self.ref_sync.on_snapshot(self.on_snapshot)
+        return self.index
 
     def on_snapshot(
         self, col_snapshot: Any, changes: Any, read_time: Any
