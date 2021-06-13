@@ -1,9 +1,10 @@
 from copy import deepcopy
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from google.api_core.exceptions import NotFound
 from google.cloud.firestore import (
     AsyncClient,
+    AsyncCollectionReference,
     Client,
     CollectionReference,
     DocumentReference,
@@ -71,13 +72,19 @@ class FirestoreDB(BaseDB):
         self.quiz_index = self.db.collection("quizzes").document("index")
 
         # First time setup
-        db_sync = Client()
-        sync_config = db_sync.collection("config")
+        self.db_sync = Client()
+        sync_config = self.db_sync.collection("config")
         if sync_config.document("censor").get().to_dict() is None:
             sync_config.document("censor").create({"data": []})
-        quiz_index = db_sync.collection("quizzes").document("index")
-        if quiz_index.get().to_dict() is None:
-            quiz_index.create({})
+        self.quiz_index_sync = self.db_sync.collection("quizzes").document(
+            "index"
+        )
+        if self.quiz_index_sync.get().to_dict() is None:
+            self.quiz_index_sync.create({})
+
+        # Quiz cache as calling .stream or .list_documents on a large
+        # collection is extremely inefficient (Cloud read cost)
+        self.quiz_cache: Dict[str, IndexCache] = {}
 
     async def censor_list(self) -> List[str]:
         data = await self.config_censor.get()
@@ -97,14 +104,19 @@ class FirestoreDB(BaseDB):
         return data.to_dict()["subjects"]
 
     async def quiz_list(self, subject: str) -> List[str]:
-        coll = await self.get_quiz_collection_by_subject(subject)
+        coll, coll_sync = await self.get_quiz_collection_by_subject(subject)
         if coll is None:
             return []
-        quizzes = coll.list_documents()
-        return [doc.id async for doc in quizzes]
+        # Don't let the cache take priority so live changes to /quizzes/index
+        # are prioritised instead
+        # Also use `coll.id` instead of `subject` because mappings in the index
+        # are many-to-one
+        if coll.id not in self.quiz_cache:
+            self.quiz_cache[coll.id] = IndexCache(coll, coll_sync)
+        return await self.quiz_cache[coll.id].get_document_ids()
 
     async def get_quiz(self, subject: str, name: str) -> "QuizBase":
-        coll = await self.get_quiz_collection_by_subject(subject)
+        coll, _ = await self.get_quiz_collection_by_subject(subject)
         if coll is None:
             return QuizBase()
         data = await coll.document(name).get()
@@ -113,10 +125,13 @@ class FirestoreDB(BaseDB):
 
     async def get_quiz_collection_by_subject(
         self, subject: str
-    ) -> Optional[AsyncCollectionReference]:
+    ) -> Optional[Tuple[AsyncCollectionReference, CollectionReference]]:
         coll = (await self.quiz_index.get()).to_dict().get(subject)
         if coll is not None:
-            return self.quiz_index.collection(coll)
+            return (
+                self.quiz_index.collection(coll),
+                self.quiz_index_sync.collection(coll),
+            )
 
 
 class User(UserBase):
