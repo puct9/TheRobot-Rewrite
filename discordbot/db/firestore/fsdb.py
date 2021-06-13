@@ -12,6 +12,55 @@ from google.cloud.firestore import (
 from ..bases import BaseDB, UserBase, QuizBase
 
 
+class IndexCache:
+    """
+    Cache for Firestore clients, automatically maintaining a list of documents
+    under a collection in an efficient manner
+    """
+
+    def __init__(
+        self,
+        collection_ref: AsyncCollectionReference,
+        collection_ref_sync: CollectionReference,
+    ) -> None:
+        # Do not update immediately - load lazily
+        # If we are never called, we can potentially avoid many reads
+        # If we are called and there are few documents, we don't use many reads
+        # either
+        self.ref = collection_ref
+        self.ref_sync = collection_ref_sync
+        self.client = Client()
+        self.loaded = False
+        self.index: Set[str] = set()
+
+    def __del__(self) -> None:
+        # Not sure if required but literally nothing to lose from this
+        if hasattr(self, "watch"):
+            self.watch.unsubscribe()
+
+    async def get_document_ids(self) -> List[str]:
+        if self.loaded:
+            return list(self.index)
+        # Perform full query
+        self.loaded = True
+        async for doc in self.ref.list_documents():
+            self.index.add(doc.id)
+        # Start listening for updates
+        self.watch = self.ref_sync.on_snapshot(self.on_snapshot)
+
+    def on_snapshot(
+        self, col_snapshot: Any, changes: Any, read_time: Any
+    ) -> None:
+        for change in changes:
+            if change.type.name == "ADDED":
+                self.index.add(change.document.id)
+            if change.type.name == "REMOVED":
+                try:
+                    self.index.remove(change.document.id)
+                except KeyError:
+                    pass
+
+
 class FirestoreDB(BaseDB):
     def __init__(self) -> None:
         self.db = AsyncClient()
