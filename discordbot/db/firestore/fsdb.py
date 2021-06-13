@@ -32,7 +32,7 @@ class IndexCache:
         self.ref_sync = collection_ref_sync
         self.client = Client()
         self.loaded = False
-        self.index: Set[str] = set()
+        self._index: Set[str] = set()
 
     def __del__(self) -> None:
         # Not sure if required but literally nothing to lose from this
@@ -41,24 +41,24 @@ class IndexCache:
 
     async def get_document_ids(self) -> List[str]:
         if self.loaded:
-            return list(self.index)
+            return list(self._index)
         # Perform full query
         self.loaded = True
         async for doc in self.ref.list_documents():
-            self.index.add(doc.id)
+            self._index.add(doc.id)
         # Start listening for updates
         self.watch = self.ref_sync.on_snapshot(self.on_snapshot)
-        return self.index
+        return list(self._index)
 
     def on_snapshot(
         self, col_snapshot: Any, changes: Any, read_time: Any
     ) -> None:
         for change in changes:
             if change.type.name == "ADDED":
-                self.index.add(change.document.id)
+                self._index.add(change.document.id)
             if change.type.name == "REMOVED":
                 try:
-                    self.index.remove(change.document.id)
+                    self._index.remove(change.document.id)
                 except KeyError:
                     pass
 
