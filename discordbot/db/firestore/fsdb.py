@@ -63,7 +63,7 @@ class FirestoreDB(BaseDB):
 
     async def get_quiz_collection_by_subject(
         self, subject: str
-    ) -> Optional[CollectionReference]:
+    ) -> Optional[AsyncCollectionReference]:
         coll = (await self.quiz_index.get()).to_dict().get(subject)
         if coll is not None:
             return self.quiz_index.collection(coll)
