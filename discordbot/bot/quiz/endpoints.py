@@ -29,8 +29,11 @@ async def quiz_subject_random(
             "The subject cannot be found or there are no questions"
         )
         return
-    quiz = await self.db.get_quiz(subject, random.choice(quizzes))
+    quiz_name = random.choice(quizzes)
+    quiz = await self.db.get_quiz(subject, quiz_name)
     embed = discord.Embed(title="Question", description=quiz.question)
+    if quiz.image:
+        embed.set_thumbnail(url=quiz.image)
     if not quiz.ordered:
         random.shuffle(quiz.options)
     for i, option in enumerate(quiz.options):
@@ -41,7 +44,11 @@ async def quiz_subject_random(
         )
     footer = "Select " + ("one" if quiz.required_correct == 1 else "multiple")
     embed.set_footer(text=footer)
-    emb_msg = await message.channel.send(embed=embed)
+    try:
+        emb_msg = await message.channel.send(embed=embed)
+    except Exception as e:
+        print(f"Error on creating quiz question {quiz_name}")
+        raise e
     # Add reactions for user to click on
     for i, _ in enumerate(quiz.options):
         await emb_msg.add_reaction(character_emojis[i])
@@ -83,21 +90,20 @@ async def quiz_subject_random(
             break
 
     # Ending message
+    end_msg = ""
     emojis = [
         character_emojis[i] for i, c in enumerate(correct_responses) if c
     ]
     if n_correct >= quiz.required_correct:
-        await message.channel.send("That's right! Good job.")
+        end_msg = "That's right! Good job."
     elif quiz.required_correct == 1:
         if len(emojis) > 1:
             answers = "either " + " or ".join(emojis)
         else:
             answers = emojis[0]
-        await message.channel.send(
-            f"That's wrong! The right answer is {answers}"
-        )
+        end_msg = f"That's wrong! The right answer is {answers}"
     else:  # multiple answers required questions
         answers = " and ".join(emojis)
-        await message.channel.send(
-            f"That's wrong! The right answer is {answers}"
-        )
+        end_msg = f"That's wrong! The right answers are {answers}"
+    end_msg += f" (Quiz id: {quiz.id or quiz_name})"
+    await message.channel.send(end_msg)

@@ -78,9 +78,11 @@ class UserBase(BaseDataModel):
 class QuizBase(BaseDataModel):
     # Demonstration of how quizzes can be laid out
     _DEFAULT = {
+        "id": "",
         "question": "What is the capital of Australia?",
         "ordered": False,
         "required_correct": 1,
+        "image": "",
         "options": [
             {
                 "answer": "Canberra",
@@ -103,7 +105,9 @@ class QuizBase(BaseDataModel):
 
     def __init__(self) -> None:
         super().__init__()
+        self.id: str
         self.question: str
         self.ordered: bool
         self.required_correct: int
+        self.image: str
         self.options: List[Dict[str, Any]]
