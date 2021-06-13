@@ -1,7 +1,13 @@
 # Directories
 /.vscode
 /venv
+/wenv
 __pycache__
 
 # Files
+/*.bat
 /*.sh
+/test*.py
+
+# Google Cloud key file
+/*.json
