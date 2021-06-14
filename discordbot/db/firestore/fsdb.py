@@ -15,8 +15,8 @@ from ..bases import BaseDB, UserBase, QuizBase
 
 class IndexCache:
     """
-    Cache for Firestore clients, automatically maintaining a list of documents
-    under a collection in an efficient manner
+    Cache for Firestore clients, automatically maintaining a list of document
+    ids under a collection in an efficient manner
     """
 
     def __init__(
