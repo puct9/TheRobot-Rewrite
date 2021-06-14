@@ -46,6 +46,7 @@ class BotClient(discord.Client):
         if endpoint is None:
             return
         print(f"Message: {message.content}")
+        print(f"Channel: {message.channel.id}")
         print(f"Author: {message.author.name} ({message.author.id})")
         print(
             "\n".join(
