@@ -1,3 +1,4 @@
+import asyncio
 from copy import deepcopy
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -47,12 +48,12 @@ class IndexCache:
     async def get_document_ids(self) -> List[str]:
         if self.loaded:
             return list(self._index)
-        # Perform full query
-        self.loaded = True
-        async for doc in self.ref.list_documents():
-            self._index.add(doc.id)
         # Start listening for updates
         self.watch = self.ref_sync.on_snapshot(self.on_snapshot)
+        # Wait for the first on_snapshot call to complete. The first call will
+        # contain all documents.
+        while not self.loaded:
+            await asyncio.sleep(0.1)
         return list(self._index)
 
     def on_snapshot(
@@ -66,6 +67,7 @@ class IndexCache:
                     self._index.remove(change.document.id)
                 except KeyError:
                     pass
+        self.loaded = True
 
 
 class DocumentCache:
@@ -76,26 +78,18 @@ class DocumentCache:
 
     def __init__(
         self,
-        document_ref: AsyncDocumentReference,
         document_ref_sync: DocumentReference,
     ) -> None:
-        self.ref = document_ref
         self.ref_sync = document_ref_sync
         self.client = Client()
-        # Load lazily
-        self.loaded = False
         self._data: Dict[str, Any] = {}
+        # Nothing to gain from loading lazily
+        self.watch = self.ref_sync.on_snapshot(self.on_snapshot)
 
     def __del__(self) -> None:
-        if hasattr(self, "watch"):
-            self.watch.unsubscribe()
+        self.watch.unsubscribe()
 
-    async def get_dict(self) -> Optional[Dict[str, Any]]:
-        if self.loaded:
-            return deepcopy(self._data)
-        self.loaded = True
-        self._data = (await self.ref.get()).to_dict()
-        self.watch = self.ref_sync.on_snapshot(self.on_snapshot)
+    def get_dict(self) -> Optional[Dict[str, Any]]:
         return deepcopy(self._data)
 
     def on_snapshot(
