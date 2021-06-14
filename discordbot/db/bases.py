@@ -1,8 +1,11 @@
 from copy import deepcopy
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List
 
 
 class BaseDB:
+    def __init__(self, callback: Callable[[str, Any], None]) -> None:
+        pass
+
     async def censor_list(self) -> List[str]:
         return []
 
@@ -111,3 +114,19 @@ class QuizBase(BaseDataModel):
         self.required_correct: int
         self.image: str
         self.options: List[Dict[str, Any]]
+
+
+class MessageBase(BaseDataModel):
+    _DEFAULT = {
+        "id": "",
+        "author": "",
+        "content": "",
+        "target": "",
+    }
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.id: str
+        self.author: str
+        self.content: str
+        self.target: str
