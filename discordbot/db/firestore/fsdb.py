@@ -1,6 +1,6 @@
 import asyncio
 from copy import deepcopy
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from google.api_core.exceptions import NotFound
 from google.cloud.firestore import (
@@ -33,7 +33,6 @@ class IndexCache:
         # If we are never called, we can potentially avoid many reads
         # If we are called and there are few documents, we don't use many reads
         # either
-        self.ref = collection_ref
         self.ref_sync = collection_ref_sync
         self.client = Client()
         self.loaded = False
@@ -48,7 +47,7 @@ class IndexCache:
         if self.loaded:
             return list(self._index)
         # Start listening for updates
-        self.watch = self.ref_sync.on_snapshot(self.on_snapshot)
+        self.start_watch()
         # Wait for the first on_snapshot call to complete. The first call will
         # contain all documents.
         while not self.loaded:
@@ -67,6 +66,9 @@ class IndexCache:
                 except KeyError:
                     pass
         self.loaded = True
+
+    def start_watch(self) -> None:
+        self.watch = self.ref_sync.on_snapshot(self.on_snapshot)
 
 
 class DocumentCache:
@@ -102,7 +104,8 @@ class DocumentCache:
 
 
 class FirestoreDB(BaseDB):
-    def __init__(self) -> None:
+    def __init__(self, callback: Callable[[str, Any], None]) -> None:
+        self.callback = callback
         self.db = AsyncClient()
         self.users = self.db.collection("users")
         self.quiz_index = self.db.collection("quizzes").document("index")

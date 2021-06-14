@@ -1,3 +1,6 @@
+import asyncio
+from typing import Any, Dict, Type
+
 import discord
 
 from ..db import BaseDB
@@ -16,12 +19,14 @@ DEFAULT_ROUTING = RoutingList(
 
 
 class BotClient(discord.Client):
-    def __init__(self, db: BaseDB = None) -> None:
+    def __init__(self, db_type: Type[BaseDB] = BaseDB) -> None:
         super().__init__()
-        self.db = db or BaseDB()
+        self.db = db_type(self.db_callback)
+        self.ready = False
 
     async def on_ready(self) -> None:
         print(f"Logged on as {self.user}")
+        self.ready = True
 
     async def on_message(self, message: discord.Message) -> None:
         if message.author == self.user:
@@ -50,3 +55,22 @@ class BotClient(discord.Client):
         print(f"-> {endpoint.func.__module__}.{endpoint.func.__name__}")
         print("=" * 79)
         await endpoint(self, message, groups)
+
+    def db_callback(self, event: str, data: Dict[str, Any]) -> None:
+        self._schedule_event(
+            self.db_callback_async, "db_callback_async", event, data
+        )
+
+    async def db_callback_async(
+        self, event: str, data: Dict[str, Any]
+    ) -> None:
+        while not self.ready:
+            await asyncio.sleep(0.1)
+        print(f"DB Callback: {event}")
+        # This is just a PoC for now
+        if event == "message":
+            target: str = data["target"]
+            content: str = data["content"]
+            channel = await self.fetch_channel(int(target))
+            await channel.send(content)
+        print("=" * 79)
