@@ -1,7 +1,8 @@
 import asyncio
-from typing import Any, Dict, Type
+from typing import Any, Dict, List, Tuple, Type
 
 import discord
+import discord.ext.tasks
 
 from ..db import BaseDB
 from . import chatfilter, chatwheel, lolapi, proxy, quiz
@@ -22,10 +23,12 @@ class BotClient(discord.Client):
     def __init__(self, db_type: Type[BaseDB] = BaseDB) -> None:
         super().__init__()
         self.db = db_type(self.db_callback)
+        self.db_callback_buffer: List[Tuple[str, Dict[str, Any]]] = []
         self.ready = False
+        self.run_db_callbacks.start()
 
     async def on_ready(self) -> None:
-        print(f"Logged on as {self.user}")
+        print(f"Logged on as {self.user}\n{'=' * 79}")
         self.ready = True
 
     async def on_message(self, message: discord.Message) -> None:
@@ -57,11 +60,19 @@ class BotClient(discord.Client):
         print("=" * 79)
         await endpoint(self, message, groups)
 
+    @discord.ext.tasks.loop(seconds=0.5)
+    async def run_db_callbacks(self) -> None:
+        if not self.ready:
+            return
+        if self.db_callback_buffer:
+            try:
+                await self.db_callback_async(*self.db_callback_buffer.pop())
+            except Exception as e:
+                print(f"DB Callback failed on {e}")
+
     def db_callback(self, event: str, data: Dict[str, Any]) -> None:
         # Important note: this method can be called from other threads!
-        self._schedule_event(
-            self.db_callback_async, "db_callback_async", event, data
-        )
+        self.db_callback_buffer.append((event, data))
 
     async def db_callback_async(
         self, event: str, data: Dict[str, Any]
