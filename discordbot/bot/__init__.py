@@ -57,6 +57,7 @@ class BotClient(discord.Client):
         await endpoint(self, message, groups)
 
     def db_callback(self, event: str, data: Dict[str, Any]) -> None:
+        # Important note: this method can be called from other threads!
         self._schedule_event(
             self.db_callback_async, "db_callback_async", event, data
         )
