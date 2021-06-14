@@ -124,14 +124,11 @@ class FirestoreDB(BaseDB):
 
         # Censor document cache
         self.censor_cache = DocumentCache(
-            self.db.collection("config").document("censor"),
             self.db_sync.collection("config").document("censor"),
         )
 
         # Quiz index document cache
-        self.quiz_index_cache = DocumentCache(
-            self.quiz_index, self.quiz_index_sync
-        )
+        self.quiz_index_cache = DocumentCache(self.quiz_index_sync)
 
     async def censor_list(self) -> List[str]:
         return (await self.censor_cache.get_dict())["data"]
