@@ -1,17 +1,15 @@
-from copy import deepcopy
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from google.api_core.exceptions import NotFound
 from google.cloud.firestore import (
     AsyncClient,
     AsyncCollectionReference,
-    AsyncDocumentReference,
     Client,
     CollectionReference,
 )
 
-from ..bases import BaseDB, UserBase, QuizBase
+from ..bases import BaseDB, QuizBase, UserBase
 from .caches import DocumentCache, IndexCache
+from .dtypes import Quiz, User
 
 
 class FirestoreDB(BaseDB):
@@ -47,7 +45,7 @@ class FirestoreDB(BaseDB):
     async def censor_list(self) -> List[str]:
         return (await self.censor_cache.get_dict())["data"]
 
-    async def get_user(self, user_id: int) -> "User":
+    async def get_user(self, user_id: int) -> UserBase:
         ref = self.users.document(str(user_id))
         data = (await ref.get()).to_dict()
         user = User(data, ref)
@@ -72,7 +70,7 @@ class FirestoreDB(BaseDB):
             self.quiz_cache[coll.id] = IndexCache(coll_sync)
         return await self.quiz_cache[coll.id].get_document_ids()
 
-    async def get_quiz(self, subject: str, name: str) -> "QuizBase":
+    async def get_quiz(self, subject: str, name: str) -> QuizBase:
         coll, _ = await self.get_quiz_collection_by_subject(subject)
         if coll is None:
             return QuizBase()
@@ -89,36 +87,3 @@ class FirestoreDB(BaseDB):
                 self.quiz_index.collection(coll),
                 self.quiz_index_sync.collection(coll),
             )
-
-
-class User(UserBase):
-    def __init__(
-        self, data_dict: Dict[str, Any], document: AsyncDocumentReference
-    ) -> None:
-        super().__init__()
-        data_dict = data_dict or {}
-        self._data.update(data_dict)
-        self._orig = deepcopy(data_dict)
-        self._document = document
-
-    async def commit(self) -> None:
-        try:
-            # Update diffs
-            diffs = {}
-            for k, v in self._data.items():
-                if k not in self._orig or self._orig[k] != self._data[k]:
-                    diffs[k] = v
-            if diffs:
-                await self._document.update(diffs)
-        except NotFound:
-            await self.create()
-
-    async def create(self) -> None:
-        await self._document.set(self._data)
-
-
-class Quiz(QuizBase):
-    def __init__(self, data_dict: Dict[str, Any]) -> None:
-        super().__init__()
-        data_dict = data_dict or {}
-        self._data.update(data_dict)
