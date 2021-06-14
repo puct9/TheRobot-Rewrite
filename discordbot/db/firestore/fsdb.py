@@ -27,7 +27,6 @@ class IndexCache:
 
     def __init__(
         self,
-        collection_ref: AsyncCollectionReference,
         collection_ref_sync: CollectionReference,
     ) -> None:
         # Do not update immediately - load lazily
@@ -156,7 +155,7 @@ class FirestoreDB(BaseDB):
         # Also use `coll.id` instead of `subject` because mappings in the index
         # are many-to-one
         if coll.id not in self.quiz_cache:
-            self.quiz_cache[coll.id] = IndexCache(coll, coll_sync)
+            self.quiz_cache[coll.id] = IndexCache(coll_sync)
         return await self.quiz_cache[coll.id].get_document_ids()
 
     async def get_quiz(self, subject: str, name: str) -> "QuizBase":
