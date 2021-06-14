@@ -5,9 +5,11 @@ from google.api_core.exceptions import NotFound
 from google.cloud.firestore import (
     AsyncClient,
     AsyncCollectionReference,
+    AsyncDocumentReference,
     Client,
     CollectionReference,
     DocumentReference,
+    DocumentSnapshot,
 )
 
 from ..bases import BaseDB, UserBase, QuizBase
@@ -16,7 +18,10 @@ from ..bases import BaseDB, UserBase, QuizBase
 class IndexCache:
     """
     Cache for Firestore clients, automatically maintaining a list of document
-    ids under a collection in an efficient manner
+    ids under a collection in an efficient manner by implementing a snapshot
+    listener. It is recommended by Google to avoid too many snapshot listeners.
+    This does not maintain a record of the actual data stored in the documents
+    to reduce memory cost.
     """
 
     def __init__(
@@ -63,11 +68,48 @@ class IndexCache:
                     pass
 
 
+class DocumentCache:
+    """
+    Cache for a single document by implementing a snapshot listener. It is
+    recommended by Google to avoid too many snapshot listeners.
+    """
+
+    def __init__(
+        self,
+        document_ref: AsyncDocumentReference,
+        document_ref_sync: DocumentReference,
+    ) -> None:
+        self.ref = document_ref
+        self.ref_sync = document_ref_sync
+        self.client = Client()
+        # Load lazily
+        self.loaded = False
+        self._data: Dict[str, Any] = {}
+
+    def __del__(self) -> None:
+        if hasattr(self, "watch"):
+            self.watch.unsubscribe()
+
+    async def get_dict(self) -> Optional[Dict[str, Any]]:
+        if self.loaded:
+            return deepcopy(self._data)
+        self.loaded = True
+        self._data = (await self.ref.get()).to_dict()
+        self.watch = self.ref_sync.on_snapshot(self.on_snapshot)
+        return deepcopy(self._data)
+
+    def on_snapshot(
+        self, doc_snapshot: DocumentSnapshot, changes: Any, read_time: Any
+    ):
+        # For some reasaon `doc_snapshot` can be a list [doc_snapshot]
+        if isinstance(doc_snapshot, list):
+            doc_snapshot = doc_snapshot[0]
+        self._data = doc_snapshot.to_dict()
+
+
 class FirestoreDB(BaseDB):
     def __init__(self) -> None:
         self.db = AsyncClient()
-        self.config = self.db.collection("config")
-        self.config_censor = self.config.document("censor")
         self.users = self.db.collection("users")
         self.quiz_index = self.db.collection("quizzes").document("index")
 
@@ -86,9 +128,19 @@ class FirestoreDB(BaseDB):
         # collection is extremely inefficient (Cloud read cost)
         self.quiz_cache: Dict[str, IndexCache] = {}
 
+        # Censor document cache
+        self.censor_cache = DocumentCache(
+            self.db.collection("config").document("censor"),
+            self.db_sync.collection("config").document("censor"),
+        )
+
+        # Quiz index document cache
+        self.quiz_index_cache = DocumentCache(
+            self.quiz_index, self.quiz_index_sync
+        )
+
     async def censor_list(self) -> List[str]:
-        data = await self.config_censor.get()
-        return data.to_dict()["data"]
+        return (await self.censor_cache.get_dict())["data"]
 
     async def get_user(self, user_id: int) -> "User":
         ref = self.users.document(str(user_id))
@@ -100,8 +152,7 @@ class FirestoreDB(BaseDB):
         return user
 
     async def quiz_subjects(self) -> List[str]:
-        data = await self.quiz_index.get()
-        return data.to_dict()["subjects"]
+        return (await self.quiz_index_cache.get_dict())["subjects"]
 
     async def quiz_list(self, subject: str) -> List[str]:
         res = await self.get_quiz_collection_by_subject(subject)
@@ -127,7 +178,7 @@ class FirestoreDB(BaseDB):
     async def get_quiz_collection_by_subject(
         self, subject: str
     ) -> Optional[Tuple[AsyncCollectionReference, CollectionReference]]:
-        coll = (await self.quiz_index.get()).to_dict().get(subject)
+        coll = (await self.quiz_index_cache.get_dict()).get(subject)
         if coll is not None:
             return (
                 self.quiz_index.collection(coll),
@@ -137,7 +188,7 @@ class FirestoreDB(BaseDB):
 
 class User(UserBase):
     def __init__(
-        self, data_dict: Dict[str, Any], document: DocumentReference
+        self, data_dict: Dict[str, Any], document: AsyncDocumentReference
     ) -> None:
         super().__init__()
         data_dict = data_dict or {}
