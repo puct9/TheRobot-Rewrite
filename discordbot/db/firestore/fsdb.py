@@ -89,7 +89,8 @@ class DocumentCache:
     def __del__(self) -> None:
         self.watch.unsubscribe()
 
-    def get_dict(self) -> Optional[Dict[str, Any]]:
+    async def get_dict(self) -> Optional[Dict[str, Any]]:
+        # Make this a coroutine for consistency
         return deepcopy(self._data)
 
     def on_snapshot(
