@@ -4,7 +4,7 @@ from typing import Any, Dict
 from google.api_core.exceptions import NotFound
 from google.cloud.firestore import AsyncDocumentReference
 
-from ..bases import QuizBase, UserBase
+from ..bases import MessageBase, QuizBase, UserBase
 
 
 class User(UserBase):
@@ -34,6 +34,13 @@ class User(UserBase):
 
 
 class Quiz(QuizBase):
+    def __init__(self, data_dict: Dict[str, Any]) -> None:
+        super().__init__()
+        data_dict = data_dict or {}
+        self._data.update(data_dict)
+
+
+class Message(MessageBase):
     def __init__(self, data_dict: Dict[str, Any]) -> None:
         super().__init__()
         data_dict = data_dict or {}

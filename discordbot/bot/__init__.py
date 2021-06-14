@@ -68,6 +68,7 @@ class BotClient(discord.Client):
         while not self.ready:
             await asyncio.sleep(0.1)
         print(f"DB Callback: {event}")
+        print(f"Data: {data}")
         # This is just a PoC for now
         if event == "message":
             target: str = data["target"]

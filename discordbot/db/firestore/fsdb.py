@@ -10,6 +10,7 @@ from google.cloud.firestore import (
 from ..bases import BaseDB, QuizBase, UserBase
 from .caches import DocumentCache, IndexCache
 from .dtypes import Quiz, User
+from .fsms import FirestoreMessagingService
 
 
 class FirestoreDB(BaseDB):
@@ -41,6 +42,11 @@ class FirestoreDB(BaseDB):
 
         # Quiz index document cache
         self.quiz_index_cache = DocumentCache(self.quiz_index_sync)
+
+        # Messaging service
+        self.messaging_service = FirestoreMessagingService(
+            self.db_sync.collection("messaging"), self.callback
+        )
 
     async def censor_list(self) -> List[str]:
         return (await self.censor_cache.get_dict())["data"]

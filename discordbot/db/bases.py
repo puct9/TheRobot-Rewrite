@@ -129,3 +129,4 @@ class MessageBase(BaseDataModel):
         self.id: str
         self.author: str
         self.content: str
+        self.target: str
