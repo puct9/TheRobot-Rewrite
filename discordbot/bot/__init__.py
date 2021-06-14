@@ -65,7 +65,10 @@ class BotClient(discord.Client):
         if not self.ready:
             return
         if self.db_callback_buffer:
-            await self.db_callback_async(*self.db_callback_buffer.pop())
+            try:
+                await self.db_callback_async(*self.db_callback_buffer.pop())
+            except Exception as e:
+                print(f"DB Callback failed on {e}")
 
     def db_callback(self, event: str, data: Dict[str, Any]) -> None:
         # Important note: this method can be called from other threads!
