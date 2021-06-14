@@ -3,7 +3,6 @@ from copy import deepcopy
 from typing import Any, Dict, List, Optional, Set
 
 from google.cloud.firestore import (
-    Client,
     CollectionReference,
     DocumentReference,
     DocumentSnapshot,
@@ -21,7 +20,6 @@ class DocumentCache:
         document_ref_sync: DocumentReference,
     ) -> None:
         self.ref_sync = document_ref_sync
-        self.client = Client()
         self._data: Dict[str, Any] = {}
         # Nothing to gain from loading lazily
         self.watch = self.ref_sync.on_snapshot(self.on_snapshot)
@@ -60,7 +58,6 @@ class IndexCache:
         # If we are called and there are few documents, we don't use many reads
         # either
         self.ref_sync = collection_ref_sync
-        self.client = Client()
         self.loaded = False
         self._index: Set[str] = set()
 
