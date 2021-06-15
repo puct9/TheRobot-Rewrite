@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 from typing import Any, Dict, List, Tuple, Type
 
 import discord
@@ -58,7 +59,10 @@ class BotClient(discord.Client):
         )
         print(f"-> {endpoint.func.__module__}.{endpoint.func.__name__}")
         print("=" * 79)
-        await endpoint(self, message, groups)
+        try:
+            await endpoint(self, message, groups)
+        except Exception:
+            traceback.print_exc()
 
     @discord.ext.tasks.loop(seconds=0.5)
     async def run_db_callbacks(self) -> None:
