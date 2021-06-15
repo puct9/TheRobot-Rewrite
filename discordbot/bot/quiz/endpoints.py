@@ -90,20 +90,25 @@ async def quiz_subject_random(
             break
 
     # Ending message
-    end_msg = ""
+    end_msg = (
+        "You answered "
+        + " ".join(character_emojis[i] for i, r in enumerate(responses) if r)
+        + ". "
+    )
     emojis = [
         character_emojis[i] for i, c in enumerate(correct_responses) if c
     ]
     if n_correct >= quiz.required_correct:
-        end_msg = "That's right! Good job."
+        end_msg += "That's right! :thumbsup:"
     elif quiz.required_correct == 1:
         if len(emojis) > 1:
             answers = "either " + " or ".join(emojis)
         else:
             answers = emojis[0]
-        end_msg = f"That's wrong! The right answer is {answers}"
+        end_msg += f"That's wrong! :thumbsdown: The right answer is {answers}"
     else:  # multiple answers required questions
         answers = " and ".join(emojis)
-        end_msg = f"That's wrong! The right answers are {answers}"
+        end_msg += f"That's wrong! The right answers are {answers}"
     end_msg += f" (Quiz id: {quiz.id or quiz_name})"
-    await message.channel.send(end_msg)
+    embed.add_field(name="Result", value=end_msg)
+    await emb_msg.edit(embed=embed)
