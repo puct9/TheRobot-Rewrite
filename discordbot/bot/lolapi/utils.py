@@ -1,12 +1,29 @@
 import io
 import urllib.parse
-from typing import Any, Dict, Tuple, Union
+from typing import Sequence, TYPE_CHECKING, Any, Callable, Dict, Tuple, Union
 
 import discord
 import numpy as np
 from matplotlib import pyplot as plt
 
 from .query import API
+
+if TYPE_CHECKING:
+    from .. import BotClient
+
+
+def requires_rg_api(
+    endpoint: Callable[["BotClient", discord.Message, Sequence[str]], None]
+):
+    async def wrapped(
+        self: "BotClient", message: discord.Message, groups: Sequence[str]
+    ) -> None:
+        if API is not None:
+            await endpoint(self, message, groups)
+        else:
+            await message.channel.send("No Riot API key (server error)")
+
+    return wrapped
 
 
 async def generate_visual(
