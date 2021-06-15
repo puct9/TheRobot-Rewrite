@@ -79,7 +79,8 @@ async def quiz_subject_random(
         if 0 <= idx < len(quiz.options):
             responses[idx] = reaction.count > 1
     if not any(responses):
-        await message.channel.send("Out of time!")
+        embed.add_field(name="Result", value="No answer provided.")
+        await emb_msg.edit(embed=embed)
         return
     n_correct = 0
     correct_responses = [option["correct"] for option in quiz.options]
