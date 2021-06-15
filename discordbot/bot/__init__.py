@@ -63,6 +63,9 @@ class BotClient(discord.Client):
             await endpoint(self, message, groups)
         except Exception:
             traceback.print_exc()
+            await message.channel.send(
+                "Oops, something broke! Please try again."
+            )
 
     @discord.ext.tasks.loop(seconds=0.5)
     async def run_db_callbacks(self) -> None:
