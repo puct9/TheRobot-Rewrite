@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Tuple, Type
 import discord
 import discord.ext.tasks
 
-from ..db import BaseDB
+from ..backend.db import BaseDB
 from . import chatfilter, chatwheel, lolapi, proxy, quiz
 from .routing import Pattern, RoutingList
 
