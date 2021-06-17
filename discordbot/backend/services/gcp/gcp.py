@@ -12,4 +12,4 @@ class GCPService(BaseService):
         res = (
             await self.client.analyze_sentiment(request={"document": doc})
         ).document_sentiment
-        return res.score * res.magnitude
+        return res.magnitude * (-1 if res.score < 0 else 1)
