@@ -6,7 +6,8 @@ import discord
 import discord.ext.tasks
 
 from ..backend.db import BaseDB
-from . import chatfilter, chatwheel, lolapi, proxy, quiz
+from ..backend.services import BaseService
+from . import chatwheel, lolapi, manager, proxy, quiz
 from .routing import Pattern, RoutingList
 
 DEFAULT_ROUTING = RoutingList(
@@ -15,16 +16,21 @@ DEFAULT_ROUTING = RoutingList(
         Pattern(r"^\.lol ", lolapi.PATTERNS),
         Pattern(r"^\.proxy ", proxy.PATTERNS),
         Pattern(r"^\.quiz", quiz.PATTERNS),
-        Pattern(r".+", chatfilter.filter),
+        Pattern(r".+", manager.manage),
     ]
 )
 
 
 class BotClient(discord.Client):
-    def __init__(self, db_type: Type[BaseDB] = BaseDB) -> None:
+    def __init__(
+        self,
+        db_type: Type[BaseDB] = BaseDB,
+        service_type: Type[BaseService] = BaseService,
+    ) -> None:
         super().__init__()
         self.db = db_type(self.db_callback)
         self.db_callback_buffer: List[Tuple[str, Dict[str, Any]]] = []
+        self.service = service_type()
         self.ready = False
         self.run_db_callbacks.start()
 

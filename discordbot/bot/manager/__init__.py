@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
 
 @Endpoint
-async def filter(
+async def manage(
     self: "BotClient", message: discord.Message, groups: Sequence[str]
 ) -> None:
     user = await self.db.get_user(message.author.id)
