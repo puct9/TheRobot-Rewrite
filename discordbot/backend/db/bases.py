@@ -70,12 +70,14 @@ class UserBase(BaseDataModel):
     _DEFAULT = {
         "id": "0",
         "censor_exempt": False,
+        "sentiment": [],
     }
 
     def __init__(self) -> None:
         super().__init__()
         self.id: str
         self.censor_exempt: bool
+        self.sentiment: List[float]
 
 
 class QuizBase(BaseDataModel):
