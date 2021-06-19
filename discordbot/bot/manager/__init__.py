@@ -1,3 +1,4 @@
+import asyncio
 import numpy as np
 from typing import TYPE_CHECKING, Sequence
 
@@ -13,13 +14,14 @@ if TYPE_CHECKING:
 async def manage(
     self: "BotClient", message: discord.Message, groups: Sequence[str]
 ) -> None:
-    user = await self.db.get_user(message.author.id)
+    user, sentiment = await asyncio.gather(
+        self.db.get_user(message.author.id),
+        self.service.sentiment_analysis(message.content),
+    )
+    user.sentiment.append(sentiment)
     # Message sentiment analysis
     # There is a chance that changes are not properly pushed if messages are
     # sent too quickly. This issue may be addressed later.
-    user.sentiment.append(
-        await self.service.sentiment_analysis(message.content)
-    )
     if len(user.sentiment) >= 10:
         scores = np.clip(user.sentiment, -2, 2)
         if scores.mean() < 0:
