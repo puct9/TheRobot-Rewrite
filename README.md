@@ -5,3 +5,4 @@ We all make mistakes.
 ## TODO
 
 - LoL in-game status
+- Database transactions
