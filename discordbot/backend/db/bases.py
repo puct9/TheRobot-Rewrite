@@ -3,13 +3,18 @@ from typing import Any, Callable, Dict, List
 
 
 class BaseDB:
+    # Transaction function wrapper
+
     def __init__(self, callback: Callable[[str, Any], None]) -> None:
+        self.transactional: Callable[[Callable], Any]
+
+    def transaction(self) -> Any:
         pass
 
     async def censor_list(self) -> List[str]:
         return []
 
-    async def get_user(self, user_id: int) -> "UserBase":
+    async def get_user(self, user_id: int, **kwargs) -> "UserBase":
         user = UserBase()
         user.id = str(user_id)
         return user
@@ -62,21 +67,25 @@ class BaseDataModel:
             )
         self._data[name] = value
 
-    async def commit(self) -> None:
+    async def commit(self, **kwargs) -> None:
         pass
 
 
 class UserBase(BaseDataModel):
     _DEFAULT = {
         "id": "0",
+        "name": "",
         "censor_exempt": False,
+        "messages": [],
         "sentiment": [],
     }
 
     def __init__(self) -> None:
         super().__init__()
         self.id: str
+        self.name: str
         self.censor_exempt: bool
+        self.messages: List[str]
         self.sentiment: List[float]
 
 

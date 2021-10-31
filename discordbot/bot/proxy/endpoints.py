@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from .. import BotClient
 
 
-@Endpoint
+@Endpoint()
 async def proxy_embed(
     self: "BotClient", message: discord.Message, groups: Sequence[str]
 ) -> None:

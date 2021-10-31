@@ -1,23 +1,90 @@
+import asyncio
 import re
-from typing import Callable, Generator, List, Match, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Generator,
+    List,
+    Match,
+    Tuple,
+    Union,
+)
 
 import discord
+
+if TYPE_CHECKING:
+    from . import BotClient
+
+
+class _EndpointCallable:
+    def __init__(self, func: Callable, name: str) -> None:
+        self.func = func
+        self.name = name
+
+    async def __call__(self, *args: Any, **kwargs: Any) -> None:
+        await self.func(*args, **kwargs)
 
 
 class Endpoint:
     def __init__(
         self,
-        func: Callable[[discord.Client, discord.Message, Tuple[str]], None],
+        *,
+        checkmark_react: bool = True,
+        require_transaction: bool = False,
     ) -> None:
+        self.checkmark_react = checkmark_react
+        self.require_transaction = require_transaction
+
+    def __call__(
+        self, func: Callable[["BotClient", discord.Message, Tuple[str]], Any]
+    ) -> _EndpointCallable:
+        # This should get called immediately if it is being used as a decorator
+        # Save the func to this object for easy access (e.g. access its name)
         self.func = func
 
-    async def __call__(
-        self,
-        client: discord.Client,
-        message: discord.Message,
-        groups: Tuple[str],
-    ) -> None:
-        await self.func(client, message, groups)
+        async def wrapped(
+            client: "BotClient", message: discord.Message, groups: Tuple[str]
+        ) -> None:
+            # This section here gives us a chance to insert some middleware
+            # Let's react with a check mark to signal to the user their query
+            # is being processed.
+            check_mark = chr(0x2611)  # U+2611 Check mark
+            if self.checkmark_react:
+                await message.add_reaction(check_mark)
+
+            try:
+                if not self.require_transaction:
+                    await self.func(client, message, groups)
+
+                else:
+                    # Transactional endpoints take an extra transaction object
+                    transaction = client.db.transaction()
+
+                    @client.db.transactional
+                    async def transaction_fn(t):
+                        await self.func(client, message, groups, t)
+
+                    await transaction_fn(transaction)
+
+            except Exception as e:
+                # We broke, so remove the check mark and put a cross
+                coros = [message.add_reaction(chr(0x274C))]  # Cross
+                if self.checkmark_react:
+                    coros.append(
+                        message.remove_reaction(check_mark, client.user)
+                    )
+                await asyncio.gather(
+                    message.remove_reaction(check_mark),
+                    message.add_reaction(chr(0x274C)),
+                )
+                raise e
+
+            # Remove the check mark at the end of it all else it gets annoying
+            if self.checkmark_react:
+                await message.remove_reaction(check_mark, client.user)
+
+        return _EndpointCallable(wrapped, f"{func.__module__}.{func.__name__}")
 
 
 class Pattern:
@@ -41,13 +108,13 @@ class RoutingList:
 
     def forward(
         self, message: discord.Message
-    ) -> Tuple[List[Pattern], Endpoint, Tuple[str]]:
+    ) -> Tuple[List[Pattern], _EndpointCallable, Tuple[str]]:
         for pattern in self.patterns:
             pattern_match = pattern.do_match(message.content)
             if pattern_match is None:
                 continue
             next_routing = pattern.to
-            if isinstance(next_routing, Endpoint):
+            if isinstance(next_routing, _EndpointCallable):
                 return [pattern], next_routing, pattern_match.groups()
             elif isinstance(next_routing, RoutingList):
                 res = next_routing.forward(message)
@@ -55,7 +122,7 @@ class RoutingList:
             else:
                 raise TypeError(
                     f"Object {next_routing} is neither an "
-                    "Endpoint nor a RoutingList"
+                    "_EndpointCallable nor a RoutingList"
                 )
         return [], None, None
 

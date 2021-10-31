@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from .. import BotClient
 
 
-@Endpoint
+@Endpoint()
 @requires_rg_api
 async def lol_masteries(
     self: "BotClient", message: discord.Message, groups: Sequence[str]
@@ -28,7 +28,7 @@ async def lol_masteries(
     )
 
 
-@Endpoint
+@Endpoint()
 @requires_rg_api
 async def lol_profile(
     self: "BotClient", message: discord.Message, groups: Sequence[str]

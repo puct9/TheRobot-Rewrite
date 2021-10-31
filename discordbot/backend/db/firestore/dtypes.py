@@ -2,7 +2,7 @@ from copy import deepcopy
 from typing import Any, Dict
 
 from google.api_core.exceptions import NotFound
-from google.cloud.firestore import AsyncDocumentReference
+from google.cloud.firestore import AsyncDocumentReference, AsyncTransaction
 
 from ..bases import MessageBase, QuizBase, UserBase
 
@@ -17,7 +17,7 @@ class User(UserBase):
         self._orig = deepcopy(data_dict)
         self._document = document
 
-    async def commit(self) -> None:
+    async def commit(self, *, transaction: AsyncTransaction = None) -> None:
         try:
             # Update diffs
             diffs = {}
@@ -25,7 +25,11 @@ class User(UserBase):
                 if k not in self._orig or self._orig[k] != self._data[k]:
                     diffs[k] = v
             if diffs:
-                await self._document.update(diffs)
+                if transaction is not None:
+                    # No await here
+                    transaction.update(self._document, diffs)
+                else:
+                    await self._document.update(diffs)
         except NotFound:
             await self.create()
 

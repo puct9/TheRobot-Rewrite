@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from .. import BotClient
 
 
-@Endpoint
+@Endpoint()
 async def quiz_subject_random(
     self: "BotClient", message: discord.Message, groups: Sequence[str]
 ) -> None:
