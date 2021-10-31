@@ -3,8 +3,10 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from google.cloud.firestore import (
     AsyncClient,
     AsyncCollectionReference,
+    AsyncTransaction,
     Client,
     CollectionReference,
+    async_transactional,
 )
 
 from ..bases import BaseDB, QuizBase, UserBase
@@ -15,6 +17,8 @@ from .fsms import FirestoreMessagingService
 
 class FirestoreDB(BaseDB):
     def __init__(self, callback: Callable[[str, Any], None]) -> None:
+        self.transactional = async_transactional
+
         self.callback = callback
         self.db = AsyncClient()
         self.users = self.db.collection("users")
@@ -48,12 +52,17 @@ class FirestoreDB(BaseDB):
             self.db_sync.collection("messaging"), self.callback
         )
 
+    def transaction(self) -> Any:
+        return self.db.transaction()
+
     async def censor_list(self) -> List[str]:
         return (await self.censor_cache.get_dict())["data"]
 
-    async def get_user(self, user_id: int) -> UserBase:
+    async def get_user(
+        self, user_id: int, *, transaction: AsyncTransaction = None
+    ) -> UserBase:
         ref = self.users.document(str(user_id))
-        data = (await ref.get()).to_dict()
+        data = (await ref.get(transaction=transaction)).to_dict()
         user = User(data, ref)
         if data is None:
             user.id = str(user_id)

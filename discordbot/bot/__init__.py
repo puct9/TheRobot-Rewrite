@@ -63,7 +63,7 @@ class BotClient(discord.Client):
                 f"{i}: {pattern.match}" for i, pattern in enumerate(trace)
             )
         )
-        print(f"-> {endpoint.func.__module__}.{endpoint.func.__name__}")
+        print(f"-> {endpoint.name}")
         print("=" * 79)
         try:
             await endpoint(self, message, groups)
