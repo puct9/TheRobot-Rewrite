@@ -17,7 +17,7 @@ def get_voice_client_by_guild(
             return voice_client
 
 
-@Endpoint
+@Endpoint()
 async def join_user(
     self: "BotClient", message: discord.Message, groups: Sequence[str]
 ) -> None:
@@ -34,7 +34,7 @@ async def join_user(
         return  # Nothing we can do
 
 
-@Endpoint
+@Endpoint()
 async def leave_user(
     self: "BotClient", message: discord.Message, groups: Sequence[str]
 ) -> None:
@@ -43,7 +43,7 @@ async def leave_user(
         await voice_client.disconnect()
 
 
-@Endpoint
+@Endpoint()
 async def play_audio(
     self: "BotClient", message: discord.Message, groups: Sequence[str]
 ) -> None:

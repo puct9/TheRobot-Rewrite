@@ -4,13 +4,14 @@ from typing import TYPE_CHECKING, Sequence
 import discord
 
 from ..routing import Endpoint
-from .utils import generate_embed, generate_visual
+from .utils import generate_embed, generate_visual, requires_rg_api
 
 if TYPE_CHECKING:
     from .. import BotClient
 
 
-@Endpoint
+@Endpoint()
+@requires_rg_api
 async def lol_masteries(
     self: "BotClient", message: discord.Message, groups: Sequence[str]
 ) -> None:
@@ -27,7 +28,8 @@ async def lol_masteries(
     )
 
 
-@Endpoint
+@Endpoint()
+@requires_rg_api
 async def lol_profile(
     self: "BotClient", message: discord.Message, groups: Sequence[str]
 ) -> None:
