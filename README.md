@@ -2,7 +2,7 @@
 
 We all make mistakes.
 
-## TODO
+## Roadmap
 
-- LoL in-game status
-- Database transactions
+- [x] Database transactions
+- [ ] LoL in-game status
