@@ -28,7 +28,14 @@ async def manage(
         if len(message.content) <= 64
         else message.content[:61] + "..."
     )
-    user.messages.append(short_message)
+    user.messages.append(
+        {
+            "id": str(message.id),
+            "target": str(message.channel.id),
+            "content": short_message,
+            "attachments": [f.filename for f in message.attachments],
+        }
+    )
     if len(user.messages) >= 10:
         user.messages = user.messages[-10:]
     # Update user sentiment ratings
@@ -39,6 +46,16 @@ async def manage(
     # There is a chance that changes are not properly pushed if messages are
     # sent too quickly. This issue may be addressed later.
     await user.commit(transaction=transaction)
+
+    # Download, then upload attachments to cloud storage
+    paths = []
+    download_coros = []
+    for attachment in message.attachments:
+        paths.append(f"{message.author.id}/{message.id}/{attachment.filename}")
+        download_coros.append(attachment.read())
+    datas = await asyncio.gather(*download_coros)
+    await self.storage.upload(paths, datas)
+
     # Message censoring
     if user.censor_exempt:
         return
