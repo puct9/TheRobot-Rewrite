@@ -1,5 +1,8 @@
 import asyncio
+import json
+from io import BytesIO, StringIO
 from typing import TYPE_CHECKING, Any, Sequence
+from zipfile import ZipFile
 
 import discord
 
@@ -62,3 +65,33 @@ async def manage(
     for censor in await self.db.censor_list():
         if censor in message.content:
             await message.delete()
+
+
+@Endpoint()
+async def user_data(
+    self: "BotClient",
+    message: discord.Message,
+    groups: Sequence[str],
+) -> None:
+    # General user data
+    user = await self.db.get_user(message.author.id)
+    data_str = json.dumps(user._data, indent=4)
+
+    # Saved attachment data
+    files = await self.storage.ls(f"{message.author.id}/")
+    coros = [self.storage.read(path) for path in files]
+    datas = await asyncio.gather(*coros)
+    zip_data = BytesIO()
+    with ZipFile(zip_data, "w") as fp:
+        fp.writestr("data.json", data_str)
+        for path, data in zip(files, datas):
+            fp.writestr(path, data)
+    zip_data.seek(0)
+
+    await message.channel.send(
+        "Here's your data",
+        files=[
+            discord.File(StringIO(data_str), f"data_{message.author.id}.json"),
+            discord.File(zip_data, f"data_{message.author.id}.zip"),
+        ],
+    )

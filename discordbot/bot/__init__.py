@@ -17,6 +17,7 @@ DEFAULT_ROUTING = RoutingList(
         Pattern(r"^\.lol ", lolapi.PATTERNS),
         Pattern(r"^\.proxy ", proxy.PATTERNS),
         Pattern(r"^\.quiz", quiz.PATTERNS),
+        Pattern(r"^\.data$", manager.user_data),
         Pattern(r".*", manager.manage),
     ]
 )
@@ -54,6 +55,7 @@ class BotClient(discord.Client):
                     f"{leaf_pattern.match}```"
                 )
             await message.channel.send(res)
+            return
 
         trace, endpoint, groups = DEFAULT_ROUTING.forward(message)
         if endpoint is None:
