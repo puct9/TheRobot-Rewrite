@@ -7,6 +7,7 @@ import discord.ext.tasks
 
 from ..backend.db import BaseDB
 from ..backend.services import BaseService
+from ..backend.storage import BaseStorage
 from . import chatwheel, lolapi, manager, proxy, quiz
 from .routing import Pattern, RoutingList
 
@@ -16,7 +17,8 @@ DEFAULT_ROUTING = RoutingList(
         Pattern(r"^\.lol ", lolapi.PATTERNS),
         Pattern(r"^\.proxy ", proxy.PATTERNS),
         Pattern(r"^\.quiz", quiz.PATTERNS),
-        Pattern(r".+", manager.manage),
+        Pattern(r"^\.data$", manager.user_data),
+        Pattern(r".*", manager.manage),
     ]
 )
 
@@ -26,11 +28,13 @@ class BotClient(discord.Client):
         self,
         db_type: Type[BaseDB] = BaseDB,
         service_type: Type[BaseService] = BaseService,
+        storage_type: Type[BaseStorage] = BaseStorage,
     ) -> None:
         super().__init__()
         self.db = db_type(self.db_callback)
         self.db_callback_buffer: List[Tuple[str, Dict[str, Any]]] = []
         self.service = service_type()
+        self.storage = storage_type()
         self.ready = False
         self.run_db_callbacks.start()
 
@@ -51,6 +55,7 @@ class BotClient(discord.Client):
                     f"{leaf_pattern.match}```"
                 )
             await message.channel.send(res)
+            return
 
         trace, endpoint, groups = DEFAULT_ROUTING.forward(message)
         if endpoint is None:

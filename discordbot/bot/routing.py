@@ -91,7 +91,7 @@ class Pattern:
     def __init__(
         self,
         match: str,
-        to: Union[Endpoint, "RoutingList"],
+        to: Union[_EndpointCallable, "RoutingList"],
         description: str = "No description",
     ) -> None:
         self.match = match
@@ -128,7 +128,7 @@ class RoutingList:
 
     def generate_leaf_patterns(self) -> Generator[Pattern, None, None]:
         for pattern in self.patterns:
-            if isinstance(pattern.to, Endpoint):
+            if isinstance(pattern.to, _EndpointCallable):
                 yield pattern
             if isinstance(pattern.to, RoutingList):
                 yield from pattern.to.generate_leaf_patterns()
