@@ -31,21 +31,22 @@ async def manage(
         if len(message.content) <= 64
         else message.content[:61] + "..."
     )
-    user.messages.append(
+    user.messages.insert(
+        0,
         {
             "id": str(message.id),
             "target": str(message.channel.id),
             "content": short_message,
             "attachments": [f.filename for f in message.attachments],
-        }
+        },
     )
     if len(user.messages) >= 10:
-        user.messages = user.messages[-10:]
+        user.messages = user.messages[:10]
     # Update user sentiment ratings
-    user.sentiment.append(sentiment)
+    user.sentiment.insert(0, sentiment)
     # Message sentiment analysis
     if len(user.sentiment) >= 10:
-        user.sentiment = user.sentiment[-10:]
+        user.sentiment = user.sentiment[:10]
     # There is a chance that changes are not properly pushed if messages are
     # sent too quickly. This issue may be addressed later.
     await user.commit(transaction=transaction)
