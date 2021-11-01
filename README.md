@@ -5,6 +5,6 @@ We all make mistakes.
 ## Roadmap
 
 - [x] Database transactions
-- [ ] Attachment storage
-- [ ] Request personal data
+- [x] Attachment storage
+- [x] Request personal data
 - [ ] LoL in-game status
