@@ -1,6 +1,7 @@
 import asyncio
 import json
 import time
+from datetime import datetime, timezone
 from io import BytesIO, StringIO
 from typing import TYPE_CHECKING, Any, Sequence
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -37,17 +38,14 @@ async def manage(
         {
             "id": str(message.id),
             "target": str(message.channel.id),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "content": short_message,
+            "sentiment": sentiment,
             "attachments": [f.filename for f in message.attachments],
         },
     )
     if len(user.messages) >= 10:
         user.messages = user.messages[:10]
-    # Update user sentiment ratings
-    user.sentiment.insert(0, sentiment)
-    # Message sentiment analysis
-    if len(user.sentiment) >= 10:
-        user.sentiment = user.sentiment[:10]
     await user.commit(transaction=transaction)
 
     # Download, then upload attachments to cloud storage
