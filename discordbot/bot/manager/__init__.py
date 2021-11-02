@@ -1,8 +1,9 @@
 import asyncio
 import json
+import time
 from io import BytesIO, StringIO
 from typing import TYPE_CHECKING, Any, Sequence
-from zipfile import ZipFile
+from zipfile import ZIP_DEFLATED, ZipFile
 
 import discord
 
@@ -47,8 +48,6 @@ async def manage(
     # Message sentiment analysis
     if len(user.sentiment) >= 10:
         user.sentiment = user.sentiment[:10]
-    # There is a chance that changes are not properly pushed if messages are
-    # sent too quickly. This issue may be addressed later.
     await user.commit(transaction=transaction)
 
     # Download, then upload attachments to cloud storage
@@ -77,22 +76,39 @@ async def user_data(
     # General user data
     user = await self.db.get_user(message.author.id)
     data_str = json.dumps(user._data, indent=4)
+    json_file = discord.File(
+        StringIO(data_str), f"data_{message.author.id}.json"
+    )
 
     # Saved attachment data
     files = await self.storage.ls(f"{message.author.id}/")
     coros = [self.storage.read(path) for path in files]
     datas = await asyncio.gather(*coros)
     zip_data = BytesIO()
-    with ZipFile(zip_data, "w") as fp:
+    with ZipFile(
+        zip_data, "w", compression=ZIP_DEFLATED, compresslevel=5
+    ) as fp:
         fp.writestr("data.json", data_str)
         for path, data in zip(files, datas):
             fp.writestr(path, data)
-    zip_data.seek(0)
 
+    if zip_data.getbuffer().nbytes < 1024 * 1024 * 8:
+        zip_data.seek(0)
+        await message.channel.send(
+            "Here's your data",
+            files=[
+                json_file,
+                discord.File(zip_data, f"data_{message.author.id}.zip"),
+            ],
+        )
+        return
+
+    # Upload archive to storage and point them to a download link
+    fname = f"data_{message.author.id}_{int(time.time())}.zip"
+    await self.storage.upload(fname, zip_data.getvalue(), public=True)
+    public_url = self.storage.public_url(fname)
     await message.channel.send(
-        "Here's your data",
-        files=[
-            discord.File(StringIO(data_str), f"data_{message.author.id}.json"),
-            discord.File(zip_data, f"data_{message.author.id}.zip"),
-        ],
+        "Here's your data. The archive was too big for Discord so here's a "
+        f"download link (expires in 1 day). {public_url}",
+        file=json_file,
     )
