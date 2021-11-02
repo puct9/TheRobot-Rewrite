@@ -74,10 +74,7 @@ class Endpoint:
                     coros.append(
                         message.remove_reaction(check_mark, client.user)
                     )
-                await asyncio.gather(
-                    message.remove_reaction(check_mark),
-                    message.add_reaction(chr(0x274C)),
-                )
+                await asyncio.gather(*coros)
                 raise e
 
             # Remove the check mark at the end of it all else it gets annoying

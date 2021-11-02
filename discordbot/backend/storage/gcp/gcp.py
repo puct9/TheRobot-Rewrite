@@ -13,10 +13,17 @@ class GCSBucket(BaseStorage):
             service_file=os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
         )
         self.bucket = self.client.get_bucket(os.environ.get("BUCKET_NAME"))
+        self.public_bucket = self.client.get_bucket(
+            os.environ.get("PUBLIC_BUCKET_NAME")
+        )
 
     @property
     def bucket_name(self) -> str:
         return self.bucket.name
+
+    @property
+    def public_bucket_name(self) -> str:
+        return self.public_bucket.name
 
     async def ls(self, prefix: str) -> List[str]:
         return await self.bucket.list_blobs(prefix)
@@ -25,7 +32,11 @@ class GCSBucket(BaseStorage):
         return await self.client.download(self.bucket_name, path)
 
     async def upload(
-        self, path: Union[str, List[str]], data: Union[Any, List[Any]]
+        self,
+        path: Union[str, List[str]],
+        data: Union[Any, List[Any]],
+        *,
+        public: bool = False,
     ) -> None:
         if not path:
             return
@@ -35,10 +46,16 @@ class GCSBucket(BaseStorage):
             raise TypeError(
                 "Either none or both of path and data must be list"
             )
+        dest = self.bucket_name if not public else self.public_bucket_name
         if not isinstance(path, list):
-            await self.client.upload(self.bucket_name, path, data)
+            await self.client.upload(dest, path, data)
         else:
             coros = []
             for p, d in zip(path, data):
-                coros.append(self.client.upload(self.bucket_name, p, d))
+                coros.append(self.client.upload(dest, p, d))
             await asyncio.gather(*coros)
+
+    def public_url(self, path: str) -> str:
+        return (
+            f"https://{self.public_bucket_name}.storage.googleapis.com/{path}"
+        )

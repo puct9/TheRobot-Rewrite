@@ -9,6 +9,13 @@ class BaseStorage:
         pass
 
     async def upload(
-        self, path: Union[str, List[str]], data: Union[Any, List[Any]]
+        self,
+        path: Union[str, List[str]],
+        data: Union[Any, List[Any]],
+        *,
+        public: bool = False,
     ):
+        pass
+
+    def public_url(self, path: str) -> str:
         pass
