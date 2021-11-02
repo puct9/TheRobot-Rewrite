@@ -77,7 +77,6 @@ class UserBase(BaseDataModel):
         "name": "",
         "censor_exempt": False,
         "messages": [],
-        "sentiment": [],
     }
 
     def __init__(self) -> None:
@@ -86,7 +85,6 @@ class UserBase(BaseDataModel):
         self.name: str
         self.censor_exempt: bool
         self.messages: List[str]
-        self.sentiment: List[float]
 
 
 class QuizBase(BaseDataModel):
