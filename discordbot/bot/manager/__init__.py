@@ -57,9 +57,15 @@ async def manage(
     paths = []
     download_coros = []
     for attachment in message.attachments:
-        paths.append(f"{message.author.id}/{message.id}/{attachment.filename}")
+        paths.append(
+            f"{message.author.id}/{message.id}/attachments/"
+            f"{attachment.filename}"
+        )
         download_coros.append(attachment.read())
     datas = await asyncio.gather(*download_coros)
+    # Also upload the message itself
+    paths.append(f"{message.author.id}/{message.id}/message.txt")
+    datas.append(message.content.encode("utf-8"))
     await self.storage.upload(paths, datas)
 
     # Message censoring
