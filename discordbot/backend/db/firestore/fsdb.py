@@ -66,7 +66,7 @@ class FirestoreDB(BaseDB):
         user = User(data, ref)
         if data is None:
             user.id = str(user_id)
-            await user.create()
+            await user.create(transaction=transaction)
         return user
 
     async def quiz_subjects(self) -> List[str]:
