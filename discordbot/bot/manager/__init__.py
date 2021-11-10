@@ -39,7 +39,6 @@ async def manage(
         else message.content[:61] + "..."
     )
     user.messages.append(
-        0,
         {
             "id": str(message.id),
             "target": str(message.channel.id),
