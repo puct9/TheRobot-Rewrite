@@ -28,12 +28,17 @@ async def manage(
     # Update user name e.g. "Puct#9551"
     user.name = f"{message.author.name}#{message.author.discriminator}"
     # Update user message history
+    # Make sure messages are sorted by timestamp; timestamps are in ISO format
+    # ISO format is YYYY-MM-DDTHH:MM:SS.mmmmmm+HH:MM. Time offsets are
+    # identical for all messages in the list.
+    # We can sort by timestamp lexicographically.
+    user.messages.sort(key=lambda x: x["timestamp"])
     short_message = (
         message.content
         if len(message.content) <= 64
         else message.content[:61] + "..."
     )
-    user.messages.insert(
+    user.messages.append(
         0,
         {
             "id": str(message.id),
@@ -45,12 +50,7 @@ async def manage(
         },
     )
     if len(user.messages) > 10:
-        user.messages = user.messages[:10]
-    # Make sure messages are sorted by timestamp; timestamps are in ISO format
-    # ISO format is YYYY-MM-DDTHH:MM:SS.mmmmmm+HH:MM. Time offsets are
-    # identical for all messages in the list.
-    # We can sort by timestamp lexicographically.
-    user.messages.sort(key=lambda x: x["timestamp"])
+        user.messages = user.messages[-10:]
     await user.commit(transaction=transaction)
 
     # Download, then upload attachments to cloud storage
