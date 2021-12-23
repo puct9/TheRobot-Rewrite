@@ -8,7 +8,7 @@ import discord.ext.tasks
 from ..backend.db import BaseDB
 from ..backend.services import BaseService
 from ..backend.storage import BaseStorage
-from . import chatwheel, lolapi, manager, proxy, quiz
+from . import chatwheel, lolapi, manager, proxy, quiz, counter
 from .routing import Pattern, RoutingList
 
 DEFAULT_ROUTING = RoutingList(
@@ -18,6 +18,7 @@ DEFAULT_ROUTING = RoutingList(
         Pattern(r"^\.proxy ", proxy.PATTERNS),
         Pattern(r"^\.quiz", quiz.PATTERNS),
         Pattern(r"^\.data$", manager.user_data),
+        Pattern(r"^\.counter", counter.PATTERNS),
         Pattern(r".*", manager.manage),
     ]
 )

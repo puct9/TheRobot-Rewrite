@@ -28,6 +28,12 @@ class BaseDB:
     async def get_quiz(self, subject: str, name: str) -> "QuizBase":
         return QuizBase()
 
+    async def get_counter(self, name: str, **kwargs) -> "CounterBase":
+        counter = CounterBase()
+        counter.name = name
+        counter.value = 0
+        return counter
+
 
 class BaseDataModel:
     _DEFAULT = {}
@@ -139,3 +145,15 @@ class MessageBase(BaseDataModel):
         self.author: str
         self.content: str
         self.target: str
+
+
+class CounterBase(BaseDataModel):
+    _DEFAULT = {
+        "name": "",
+        "value": 0,
+    }
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.name: str
+        self.value: int

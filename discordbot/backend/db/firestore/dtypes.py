@@ -4,7 +4,41 @@ from typing import Any, Dict
 from google.api_core.exceptions import NotFound
 from google.cloud.firestore import AsyncDocumentReference, AsyncTransaction
 
-from ..bases import MessageBase, QuizBase, UserBase
+from ..bases import BaseDataModel, CounterBase, MessageBase, QuizBase, UserBase
+
+
+class CommitManager:
+    def __init__(
+        self, data: BaseDataModel, document: AsyncDocumentReference
+    ) -> None:
+        self.data = data
+        self._orig = deepcopy(data._data)
+        self.document = document
+
+    async def commit(self, *, transaction: AsyncTransaction = None) -> None:
+        try:
+            # Update diffs
+            diffs = {}
+            for k, v in self.data._data.items():
+                if k not in self._orig or self._orig[k] != v:
+                    diffs[k] = v
+            if diffs:
+                if transaction is not None:
+                    # No await here
+                    transaction.update(self.document, diffs)
+                else:
+                    await self.document.update(diffs)
+        except NotFound:
+            await self.create()
+
+    async def create(
+        self, *, transaction: AsyncDocumentReference = None
+    ) -> None:
+        if transaction is not None:
+            # No await here
+            transaction.set(self.document, self.data._data)
+        else:
+            await self.document.set(self.data._data)
 
 
 class User(UserBase):
@@ -14,31 +48,13 @@ class User(UserBase):
         super().__init__()
         data_dict = data_dict or {}
         self._data.update(data_dict)
-        self._orig = deepcopy(data_dict)
-        self._document = document
+        self.cm = CommitManager(self, document)
 
     async def commit(self, *, transaction: AsyncTransaction = None) -> None:
-        try:
-            # Update diffs
-            diffs = {}
-            for k, v in self._data.items():
-                if k not in self._orig or self._orig[k] != self._data[k]:
-                    diffs[k] = v
-            if diffs:
-                if transaction is not None:
-                    # No await here
-                    transaction.update(self._document, diffs)
-                else:
-                    await self._document.update(diffs)
-        except NotFound:
-            await self.create()
+        await self.cm.commit(transaction=transaction)
 
     async def create(self, *, transaction: AsyncTransaction = None) -> None:
-        if transaction is not None:
-            # Also no await here
-            transaction.set(self._document, self._data)
-        else:
-            await self._document.set(self._data)
+        await self.cm.create(transaction=transaction)
 
 
 class Quiz(QuizBase):
@@ -53,3 +69,19 @@ class Message(MessageBase):
         super().__init__()
         data_dict = data_dict or {}
         self._data.update(data_dict)
+
+
+class Counter(CounterBase):
+    def __init__(
+        self, data_dict: Dict[str, Any], document: AsyncDocumentReference
+    ) -> None:
+        super().__init__()
+        data_dict = data_dict or {}
+        self._data.update(data_dict)
+        self.cm = CommitManager(self, document)
+
+    async def commit(self, *, transaction: AsyncTransaction = None) -> None:
+        await self.cm.commit(transaction=transaction)
+
+    async def create(self, *, transaction: AsyncTransaction = None) -> None:
+        await self.cm.create(transaction=transaction)
