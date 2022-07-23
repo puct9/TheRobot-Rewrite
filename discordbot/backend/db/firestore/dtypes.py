@@ -33,8 +33,12 @@ class User(UserBase):
         except NotFound:
             await self.create()
 
-    async def create(self) -> None:
-        await self._document.set(self._data)
+    async def create(self, *, transaction: AsyncTransaction = None) -> None:
+        if transaction is not None:
+            # Also no await here
+            transaction.set(self._document, self._data)
+        else:
+            await self._document.set(self._data)
 
 
 class Quiz(QuizBase):

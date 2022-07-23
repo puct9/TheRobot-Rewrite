@@ -1,6 +1,7 @@
 import asyncio
 import json
 import time
+from datetime import datetime, timezone
 from io import BytesIO, StringIO
 from typing import TYPE_CHECKING, Any, Sequence
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -27,36 +28,43 @@ async def manage(
     # Update user name e.g. "Puct#9551"
     user.name = f"{message.author.name}#{message.author.discriminator}"
     # Update user message history
+    # Make sure messages are sorted by timestamp; timestamps are in ISO format
+    # ISO format is YYYY-MM-DDTHH:MM:SS.mmmmmm+HH:MM. Time offsets are
+    # identical for all messages in the list.
+    # We can sort by timestamp lexicographically.
+    user.messages.sort(key=lambda x: x["timestamp"])
     short_message = (
         message.content
         if len(message.content) <= 64
         else message.content[:61] + "..."
     )
-    user.messages.insert(
-        0,
+    user.messages.append(
         {
             "id": str(message.id),
             "target": str(message.channel.id),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "content": short_message,
+            "sentiment": sentiment,
             "attachments": [f.filename for f in message.attachments],
         },
     )
-    if len(user.messages) >= 10:
-        user.messages = user.messages[:10]
-    # Update user sentiment ratings
-    user.sentiment.insert(0, sentiment)
-    # Message sentiment analysis
-    if len(user.sentiment) >= 10:
-        user.sentiment = user.sentiment[:10]
+    if len(user.messages) > 10:
+        user.messages = user.messages[-10:]
     await user.commit(transaction=transaction)
 
     # Download, then upload attachments to cloud storage
     paths = []
     download_coros = []
     for attachment in message.attachments:
-        paths.append(f"{message.author.id}/{message.id}/{attachment.filename}")
+        paths.append(
+            f"{message.author.id}/{message.id}/attachments/"
+            f"{attachment.filename}"
+        )
         download_coros.append(attachment.read())
     datas = await asyncio.gather(*download_coros)
+    # Also upload the message itself
+    paths.append(f"{message.author.id}/{message.id}/message.txt")
+    datas.append(message.content.encode("utf-8"))
     await self.storage.upload(paths, datas)
 
     # Message censoring
@@ -104,6 +112,7 @@ async def user_data(
         return
 
     # Upload archive to storage and point them to a download link
+    # Include time to avoid serving cached copies
     fname = f"data_{message.author.id}_{int(time.time())}.zip"
     await self.storage.upload(fname, zip_data.getvalue(), public=True)
     public_url = self.storage.public_url(fname)
