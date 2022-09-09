@@ -31,19 +31,24 @@ class BotClient(discord.Client):
         service_type: Type[BaseService] = BaseService,
         storage_type: Type[BaseStorage] = BaseStorage,
     ) -> None:
-        super().__init__()
-        self.db = db_type(self.db_callback)
+        super().__init__(intents=discord.Intents.all())
+        self.db_type = db_type
+        self.service_type = service_type
+        self.storage_type = storage_type
         self.db_callback_buffer: List[Tuple[str, Dict[str, Any]]] = []
-        self.service = service_type()
-        self.storage = storage_type()
-        self.ready = False
-        self.run_db_callbacks.start()
 
     async def on_ready(self) -> None:
         print(f"Logged on as {self.user}\n{'=' * 79}")
+        self.db = self.db_type(self.db_callback)
+        self.service = self.service_type()
+        self.storage = self.storage_type()
+        self.ready = False
+        self.run_db_callbacks.start()
         self.ready = True
 
     async def on_message(self, message: discord.Message) -> None:
+        if not self.ready:
+            return
         if message.author == self.user:
             return
 
@@ -61,9 +66,10 @@ class BotClient(discord.Client):
         trace, endpoint, groups = DEFAULT_ROUTING.forward(message)
         if endpoint is None:
             return
-        print(f"Message: {message.content}")
-        print(f"Channel: {message.channel.id}")
         print(f"Author: {message.author.name} ({message.author.id})")
+        print(f"Channel: {message.channel.id}")
+        print(f"Message: {message.content}")
+        print(f"Attachments: {[f.filename for f in message.attachments]}")
         print(
             "\n".join(
                 f"{i}: {pattern.match}" for i, pattern in enumerate(trace)
