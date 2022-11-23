@@ -53,15 +53,13 @@ async def manage(
     await user.commit(transaction=transaction)
 
     # Download, then upload attachments to cloud storage
-    paths = []
-    download_coros = []
-    for attachment in message.attachments:
-        paths.append(
-            f"{message.author.id}/{message.id}/attachments/"
-            f"{attachment.filename}"
-        )
-        download_coros.append(attachment.read())
+    download_coros = [attachment.read() for attachment in message.attachments]
     datas = await asyncio.gather(*download_coros)
+    paths = [
+        f"{message.author.id}/{message.id}/attachments"
+        f"/{i}-{attachment.filename}"
+        for i, attachment in enumerate(message.attachments)
+    ]
     # Also upload the message itself
     paths.append(f"{message.author.id}/{message.id}/message.txt")
     datas.append(message.content.encode("utf-8"))

@@ -3,15 +3,16 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from google.cloud.firestore import (
     AsyncClient,
     AsyncCollectionReference,
+    AsyncQuery,
     AsyncTransaction,
     Client,
     CollectionReference,
     async_transactional,
 )
 
-from ..bases import BaseDB, QuizBase, UserBase
+from ..bases import BaseDB, CounterBase, QuizBase, UserBase
 from .caches import DocumentCache, IndexCache
-from .dtypes import Quiz, User
+from .dtypes import Counter, Quiz, User
 from .fsms import FirestoreMessagingService
 
 
@@ -21,6 +22,7 @@ class FirestoreDB(BaseDB):
 
         self.callback = callback
         self.db = AsyncClient()
+        self.counters = self.db.collection("counters")
         self.users = self.db.collection("users")
         self.quiz_index = self.db.collection("quizzes").document("index")
 
@@ -102,3 +104,18 @@ class FirestoreDB(BaseDB):
                 self.quiz_index.collection(coll),
                 self.quiz_index_sync.collection(coll),
             )
+
+    async def get_counter(
+        self, name: str, *, transaction: AsyncTransaction = None
+    ) -> CounterBase:
+        # Limit is unnecessary but just to be safe
+        query: AsyncQuery = self.counters.where("name", "==", name).limit(1)
+        documents = await query.get(transaction=transaction)
+        if not documents:
+            # Create a new counter
+            ref = self.counters.document()
+            counter = Counter({"name": name, "value": 0}, ref)
+            await counter.create(transaction=transaction)
+            return counter
+
+        return Counter(documents[0].to_dict(), documents[0].reference)
